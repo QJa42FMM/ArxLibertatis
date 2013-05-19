@@ -99,10 +99,12 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 #include "graphics/effects/Fog.h"
 #include "graphics/font/Font.h"
 #include "graphics/opengl/GLDebug.h"
+#include "graphics/opengl/GLPostProcess.h"
 #include "graphics/particle/ParticleEffects.h"
 #include "graphics/particle/ParticleManager.h"
 #include "graphics/particle/MagicFlare.h"
 #include "graphics/texture/TextureStage.h"
+#include "graphics/opengl/GLRenderTexture.h"
 
 #include "gui/Cursor.h"
 #include "gui/DebugHud.h"
@@ -1060,6 +1062,7 @@ bool ArxGame::addPaks() {
 		resources->addFiles(base / "misc", "misc");
 		resources->addFiles(base / "sfx", "sfx");
 		resources->addFiles(base / "speech", "speech");
+		resources->addFiles(base / "shaders", "shaders");
 	}
 	
 	return true;
@@ -2205,6 +2208,8 @@ void ArxGame::update() {
 	LaunchWaitingCine();
 }
 
+GLPostProcess * g_postProcess;
+
 void ArxGame::render() {
 	
 	ACTIVECAM = &subj;
@@ -2276,7 +2281,23 @@ void ArxGame::render() {
 
 	// Updates Externalview
 	EXTERNALVIEW = false;
-
+	
+	
+	if(!g_postProcess) {
+		g_postProcess = new GLPostProcess(Vec2s(g_size.width(), g_size.height()));
+	}
+	
+	if(g_postProcess) {
+		// TODO proper resizing
+		Vec2s screenSize = Vec2s(g_size.bottomRight());
+		if(g_postProcess->size() != screenSize) {
+			g_postProcess->resize(screenSize);
+		}
+		
+		g_postProcess->use();
+	}
+	
+	
 	if(isInMenu()) {
 		renderMenu();
 	} else if(isInCinematic()) {
@@ -2318,6 +2339,8 @@ void ArxGame::render() {
 		default: break;
 		}
 	}
+	
+	g_postProcess->render(g_size);
 	
 	if(ARXmenu.currentmode == AMCM_OFF) {
 		ARX_SCRIPT_AllowInterScriptExec();
