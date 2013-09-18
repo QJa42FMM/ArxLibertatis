@@ -64,6 +64,7 @@ protected:
 	bool initSound();
 	bool initGameData();
 	bool initGame();
+	void initPhysics();
 	bool addPaks();
 	
 	virtual void shutdown();
