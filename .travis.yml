@@ -27,6 +27,7 @@ addons:
     project:
       name: "arx/ArxLibertatis"
       description: "ArxLibertatis coverity scan"
+    notification_email: fabianroth64@googlemail.com
     build_command_prepend: "mkdir build && cd build && cmake .."
     build_command: "make -j1"
     branch_pattern: coverity_scan
