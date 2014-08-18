@@ -59,6 +59,7 @@ const string
 const int
 	levelOfDetail = 2,
 	fogDistance = 10,
+	gamma = 5,
 	volume = 10,
 	sfxVolume = 10,
 	speechVolume = 10,
@@ -148,6 +149,7 @@ const string
 	fullscreen = "full_screen",
 	levelOfDetail = "others_details",
 	fogDistance = "fog",
+	gamma = "gamma",
 	showCrosshair = "show_crosshair",
 	antialiasing = "antialiasing",
 	vsync = "vsync";
@@ -367,6 +369,7 @@ bool Config::save() {
 	writer.writeKey(Key::fullscreen, video.fullscreen);
 	writer.writeKey(Key::levelOfDetail, video.levelOfDetail);
 	writer.writeKey(Key::fogDistance, video.fogDistance);
+	writer.writeKey(Key::gamma, video.gamma);
 	writer.writeKey(Key::showCrosshair, video.showCrosshair);
 	writer.writeKey(Key::antialiasing, video.antialiasing);
 	writer.writeKey(Key::vsync, video.vsync);
@@ -453,6 +456,7 @@ bool Config::init(const fs::path & file) {
 	video.fullscreen = reader.getKey(Section::Video, Key::fullscreen, Default::fullscreen);
 	video.levelOfDetail = reader.getKey(Section::Video, Key::levelOfDetail, Default::levelOfDetail);
 	video.fogDistance = reader.getKey(Section::Video, Key::fogDistance, Default::fogDistance);
+	video.gamma = reader.getKey(Section::Video, Key::gamma, Default::gamma);
 	video.showCrosshair = reader.getKey(Section::Video, Key::showCrosshair, Default::showCrosshair);
 	video.antialiasing = reader.getKey(Section::Video, Key::antialiasing, Default::antialiasing);
 	video.vsync = reader.getKey(Section::Video, Key::vsync, Default::vsync);

@@ -113,6 +113,7 @@ public:
 		bool fullscreen;
 		int levelOfDetail;
 		float fogDistance;
+		float gamma;
 		bool showCrosshair;
 		bool antialiasing;
 		bool vsync;

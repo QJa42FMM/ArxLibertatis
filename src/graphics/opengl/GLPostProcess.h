@@ -42,6 +42,8 @@ private:
 	GLint attribute_v_coord_postproc;
 	GLint uniform_fbo_texture;
 	
+	GLint m_uniform_gamma;
+	
 	GLuint m_vertices;
 };
 
