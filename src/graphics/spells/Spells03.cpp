@@ -83,7 +83,7 @@ CFireBall::~CFireBall()
 void CFireBall::SetTTL(unsigned long aulTTL)
 {
 	unsigned long t = ulCurrentTime;
-	ulDuration = min(ulCurrentTime + aulTTL, ulDuration);
+	ulDuration = std::min(ulCurrentTime + aulTTL, ulDuration);
 	SetDuration(ulDuration);
 	ulCurrentTime = t;
 	
@@ -94,13 +94,13 @@ void CFireBall::Create(Vec3f aeSrc, float afBeta, float afAlpha)
 {
 	SetDuration(ulDuration);
 	
-	eSrc.x = aeSrc.x - std::sin(radians(afBeta)) * 60;
+	eSrc.x = aeSrc.x - std::sin(glm::radians(afBeta)) * 60;
 	eSrc.y = aeSrc.y;
-	eSrc.z = aeSrc.z + std::cos(radians(afBeta)) * 60;
+	eSrc.z = aeSrc.z + std::cos(glm::radians(afBeta)) * 60;
 
-	eMove.x = - std::sin(radians(afBeta)) * 80 * cos(radians(MAKEANGLE(afAlpha)));
-	eMove.y = sin(radians(MAKEANGLE(afAlpha))) * 80;
-	eMove.z = + std::cos(radians(afBeta)) * 80 * cos(radians(MAKEANGLE(afAlpha)));
+	eMove.x = - std::sin(glm::radians(afBeta)) * 80 * glm::cos(glm::radians(MAKEANGLE(afAlpha)));
+	eMove.y = glm::sin(glm::radians(MAKEANGLE(afAlpha))) * 80;
+	eMove.z = + std::cos(glm::radians(afBeta)) * 80 * glm::cos(glm::radians(MAKEANGLE(afAlpha)));
 	
 	// Light
 	lLightId = LightHandle::Invalid;
@@ -168,9 +168,9 @@ void CIceProjectile::Create(Vec3f aeSrc, float afBeta, float fLevel, EntityHandl
 	
 	SetDuration(ulDuration);
 	
-	float fBetaRad = radians(afBeta);
-	float fBetaRadCos = (float) cos(fBetaRad);
-	float fBetaRadSin = (float) sin(fBetaRad);
+	float fBetaRad = glm::radians(afBeta);
+	float fBetaRadCos = glm::cos(fBetaRad);
+	float fBetaRadSin = glm::sin(fBetaRad);
 	
 	Vec3f s, e, h;
 
@@ -180,8 +180,8 @@ void CIceProjectile::Create(Vec3f aeSrc, float afBeta, float fLevel, EntityHandl
 
 	float fspelldist	= static_cast<float>(iMax * 15);
 
-	fspelldist = min(fspelldist, 200.0f);
-	fspelldist = max(fspelldist, 450.0f);
+	fspelldist = std::min(fspelldist, 200.0f);
+	fspelldist = std::max(fspelldist, 450.0f);
 	e.x = aeSrc.x - fBetaRadSin * fspelldist;
 	e.y = aeSrc.y - 100;
 	e.z = aeSrc.z + fBetaRadCos * fspelldist;
@@ -289,7 +289,7 @@ void CIceProjectile::Render()
 		Anglef stiteangle;
 		Color3f stitecolor;
 
-		stiteangle.setPitch((float) cos(radians(icicle.pos.x)) * 360);
+		stiteangle.setPitch(glm::cos(glm::radians(icicle.pos.x)) * 360);
 		stiteangle.setYaw(0);
 		stiteangle.setRoll(0);
 		
@@ -312,7 +312,7 @@ void CIceProjectile::Render()
 			Draw3DObject(stite, stiteangle, icicle.pos, icicle.size, stitecolor, mat);
 	}
 	
-	for(int i = 0; i < min(iNumber, iMax + 1); i++) {
+	for(int i = 0; i < std::min(iNumber, iMax + 1); i++) {
 		Icicle & icicle = m_icicles[i];
 		
 		float t = rnd();
@@ -323,7 +323,7 @@ void CIceProjectile::Render()
 				pd->ov = icicle.pos + randomVec(-5.f, 5.f);
 				pd->move = randomVec(-2.f, 2.f);
 				pd->siz = 20.f;
-				float t = min(2000.f + rnd() * 2000.f,
+				float t = std::min(2000.f + rnd() * 2000.f,
 				              ulDuration - ulCurrentTime + 500.0f * rnd());
 				pd->tolive = checked_range_cast<unsigned long>(t);
 				pd->tc = tex_p2;
@@ -339,7 +339,7 @@ void CIceProjectile::Render()
 				pd->ov = icicle.pos + randomVec(-5.f, 5.f) - Vec3f(0.f, 50.f, 0.f);
 				pd->move = Vec3f(0.f, 2.f - 4.f * rnd(), 0.f);
 				pd->siz = 0.5f;
-				float t = min(2000.f + rnd() * 1000.f,
+				float t = std::min(2000.f + rnd() * 1000.f,
 				              ulDuration - ulCurrentTime + 500.0f * rnd());
 				pd->tolive = checked_range_cast<unsigned long>(t);
 				pd->tc = tex_p1;
@@ -429,7 +429,7 @@ void CCreateFood::Create() {
 	cp.m_lifeRandom = 2000;
 	cp.m_pos = Vec3f(100, 200, 100);
 	cp.m_direction = Vec3f(0, -10, 0) * 0.1f;
-	cp.m_angle = radians(5);
+	cp.m_angle = glm::radians(5.f);
 	cp.m_speed = 120;
 	cp.m_speedRandom = 84;
 	cp.m_gravity = Vec3f(0, -10, 0);

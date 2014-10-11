@@ -100,10 +100,10 @@ void MiniMap::getData(int showLevel) {
 					for(int k = 0; k < eg->nbpoly; k++) {
 						EERIEPOLY * ep = &eg->polydata[k];
 						if(ep) {
-							minX = min(minX, ep->min.x);
-							maxX = max(maxX, ep->max.x);
-							minY = min(minY, ep->min.z);
-							maxY = max(maxY, ep->max.z);
+							minX = std::min(minX, ep->min.x);
+							maxX = std::max(maxX, ep->max.x);
+							minY = std::min(minY, ep->min.z);
+							maxY = std::max(maxY, ep->max.z);
 						}
 					}
 				}
@@ -399,7 +399,7 @@ void MiniMap::showBookEntireMap(int showLevel) {
 	
 	TexturedVertex verts[4];
 	for(int k = 0; k < 4; k++) {
-		verts[k].color = 0xFFFFFFFF;
+		verts[k].color = Color(255, 255, 255, 255).toRGBA();
 		verts[k].rhw = 1;
 		verts[k].p.z = 0.00001f;
 	}
@@ -416,10 +416,10 @@ void MiniMap::showBookEntireMap(int showLevel) {
 		float pos_x = m_mapMarkers[i].m_pos.x * 8 * ratio * m_activeBkg->Xmul * casePos.x + start.x;
 		float pos_y = m_mapMarkers[i].m_pos.y * 8 * ratio * m_activeBkg->Zmul * casePos.y + start.y;
 		float size = 5.f * ratio;
-		verts[0].color = 0xFFFF0000;
-		verts[1].color = 0xFFFF0000;
-		verts[2].color = 0xFFFF0000;
-		verts[3].color = 0xFFFF0000;
+		verts[0].color = Color(255, 0, 0, 255).toRGBA();
+		verts[1].color = Color(255, 0, 0, 255).toRGBA();
+		verts[2].color = Color(255, 0, 0, 255).toRGBA();
+		verts[3].color = Color(255, 0, 0, 255).toRGBA();
 		verts[0].p.x = (pos_x - size) * g_sizeRatio.x;
 		verts[0].p.y = (pos_y - size) * g_sizeRatio.y;
 		verts[1].p.x = (pos_x + size) * g_sizeRatio.x;
@@ -504,7 +504,7 @@ void MiniMap::revealPlayerPos(int showLevel) {
 			
 			int r = vv * 255.f;
 			
-			int ucLevel =  max(r, (int)m_levels[showLevel].m_revealed[i][j]);
+			int ucLevel = std::max(r, (int)m_levels[showLevel].m_revealed[i][j]);
 			m_levels[showLevel].m_revealed[i][j] = checked_range_cast<unsigned char>(ucLevel);
 		}
 	}
@@ -604,7 +604,7 @@ void MiniMap::drawBackground(int showLevel, Rect boundaries, float startX, float
 			float oo = 0.f;
 			
 			for(int vert = 0; vert < 4; vert++) {
-				verts[vert].color = 0xFFFFFFFF;
+				verts[vert].color = Color(255, 255, 255, 255).toRGBA();
 				verts[vert].rhw = 1;
 				verts[vert].p.z = 0.00001f;
 
@@ -620,7 +620,7 @@ void MiniMap::drawBackground(int showLevel, Rect boundaries, float startX, float
 				if((i + iOffset < 0) || (i + iOffset >= MINIMAP_MAX_X) || (j + jOffset < 0) || (j + jOffset >= MINIMAP_MAX_Z)) {
 					v = 0;
 				} else {
-					v = ((float)m_levels[showLevel].m_revealed[min(i+iOffset, MINIMAP_MAX_X-iOffset)][min(j+jOffset, MINIMAP_MAX_Z-jOffset)]) * (1.0f / 255);
+					v = ((float)m_levels[showLevel].m_revealed[std::min(i+iOffset, MINIMAP_MAX_X-iOffset)][std::min(j+jOffset, MINIMAP_MAX_Z-jOffset)]) * (1.0f / 255);
 				}
 				
 				if(fadeBorder > 0.f) {
@@ -658,7 +658,7 @@ void MiniMap::drawBackground(int showLevel, Rect boundaries, float startX, float
 					}
 				}
 				
-				verts[vert].color = Color::gray(v * alpha).toBGR();
+				verts[vert].color = Color::gray(v * alpha).toRGB();
 				
 				oo += v;
 			}
@@ -697,7 +697,7 @@ void MiniMap::drawPlayer(float playerSize, float playerX, float playerY, bool al
 	TexturedVertex verts[4];
 	
 	for(int k = 0; k < 4; k++) {
-		verts[k].color = 0xFFFF0000; // red
+		verts[k].color = Color(255, 0, 0, 255).toRGBA();
 		verts[k].rhw = 1;
 		verts[k].p.z = 0.00001f;
 	}
@@ -709,7 +709,7 @@ void MiniMap::drawPlayer(float playerSize, float playerX, float playerY, bool al
 	float rx3 = playerSize * (1.0f / 2);
 	float ry3 = playerSize;
 	
-	float angle = radians(m_player->angle.getPitch());
+	float angle = glm::radians(m_player->angle.getPitch());
 	float ca = std::cos(angle);
 	float sa = std::sin(angle);
 	
@@ -781,7 +781,7 @@ void MiniMap::drawDetectedEntities(int showLevel, float startX, float startY, fl
 		- (npc->pos.z + 200 + ofy - ofy2) * ( 1.0f / 100 ) * caseY + m_miniOffsetY[m_currentLevel] * ratio * m_modZ) / m_modZ;
 		
 		float d = fdist(Vec2f(m_player->pos.x, m_player->pos.z), Vec2f(npc->pos.x, npc->pos.z));
-		if(d > 800 || fabs(ents.player()->pos.y - npc->pos.y) > 250.f) {
+		if(d > 800 || glm::abs(ents.player()->pos.y - npc->pos.y) > 250.f) {
 			continue; // the NPC is too far away to be detected
 		}
 		

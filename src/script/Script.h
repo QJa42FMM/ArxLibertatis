@@ -48,6 +48,7 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 #define ARX_SCRIPT_SCRIPT_H
 
 #include <stddef.h>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -120,6 +121,11 @@ struct EERIE_SCRIPT {
 	long shortcut[MAX_SHORTCUT];
 	long nb_labels;
 	LABEL_INFO * labels;
+
+	EERIE_SCRIPT() : size(), data(), lastcall(), allowevents(), master(), nb_labels(), labels() {
+		memset(&timers, 0, sizeof(timers));
+		memset(&shortcut, 0, sizeof(shortcut));
+	}
 };
 
 struct SCR_TIMER {

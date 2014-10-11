@@ -74,9 +74,6 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 
 #include "util/String.h"
 
-using std::string;
-using std::vector;
-
 #if BUILD_EDIT_LOADSAVE
 
 bool ARX_FTL_Save(const fs::path & file, const EERIE_3DOBJ * obj) {
@@ -367,7 +364,7 @@ struct MCACHE_DATA {
 	char * data;
 	size_t size;
 };
-static vector<MCACHE_DATA> meshCache;
+static std::vector<MCACHE_DATA> meshCache;
 
 // Checks for Mesh file existence in cache
 static long MCache_Get(const res::path & file) {
@@ -400,7 +397,7 @@ static bool MCache_Push(const res::path & file, char * data, size_t size) {
 }
 
 void MCache_ClearAll(){
-	for(vector<MCACHE_DATA>::iterator it = meshCache.begin(); it != meshCache.end(); ++it) {
+	for(std::vector<MCACHE_DATA>::iterator it = meshCache.begin(); it != meshCache.end(); ++it) {
 		free(it->data);
 	}
 
@@ -501,7 +498,7 @@ EERIE_3DOBJ * ARX_FTL_Load(const res::path & file) {
 	pos = afsh->offset_3Ddata;
 	
 	// Available from here in whole function
-	EERIE_3DOBJ * obj = new EERIE_3DOBJ();
+	EERIE_3DOBJ * obj = new EERIE_3DOBJ;
 	
 	const ARX_FTL_3D_DATA_HEADER * af3Ddh;
 	af3Ddh = reinterpret_cast<const ARX_FTL_3D_DATA_HEADER *>(dat + pos);
@@ -526,7 +523,7 @@ EERIE_3DOBJ * ARX_FTL_Load(const res::path & file) {
 			obj->vertexlist[ii] = *reinterpret_cast<const EERIE_OLD_VERTEX *>(dat + pos);
 			pos += sizeof(EERIE_OLD_VERTEX);
 			
-			obj->vertexlist[ii].vert.color = 0xFF000000;
+			obj->vertexlist[ii].vert.color = Color(0, 0, 0, 255).toRGBA();
 		}
 		
 		// Set the origin point of the mesh
@@ -699,6 +696,11 @@ EERIE_3DOBJ * ARX_FTL_Load(const res::path & file) {
 	EERIE_Object_Precompute_Fast_Access(obj);
 	
 	LogDebug("ARX_FTL_Load: loaded object " << filename);
+	
+	arx_assert(obj->pos == Vec3f_ZERO);
+	arx_assert(obj->point0 == Vec3f_ZERO);
+	arx_assert(obj->angle == Anglef::ZERO);
+	arx_assert(obj->quat == glm::quat());
 	
 	return obj;
 }

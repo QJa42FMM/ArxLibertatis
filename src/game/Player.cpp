@@ -125,8 +125,6 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 
 #include "script/Script.h"
 
-using std::vector;
-
 extern bool		ARX_CONVERSATION;
 extern long		HERO_SHOW_1ST;
 extern long		REQUEST_SPEECH_SKIP;
@@ -170,11 +168,11 @@ static unsigned long ROTATE_START = 0;
 ANIM_HANDLE * herowaitbook = NULL;
 ANIM_HANDLE * herowait_2h = NULL;
 
-vector<KEYRING_SLOT> Keyring;
+std::vector<KEYRING_SLOT> Keyring;
 
 static unsigned long FALLING_TIME = 0;
 
-vector<STRUCT_QUEST> PlayerQuest;
+std::vector<STRUCT_QUEST> PlayerQuest;
 
 bool ARX_PLAYER_IsInFightMode() {
 	arx_assert(entities.player());
@@ -246,9 +244,9 @@ void ARX_KEYRING_Combine(Entity * io) {
  */
 void ARX_PLAYER_FrontPos(Vec3f * pos)
 {
-	pos->x = player.pos.x - std::sin(radians(MAKEANGLE(player.angle.getPitch()))) * 100.f;
+	pos->x = player.pos.x - std::sin(glm::radians(MAKEANGLE(player.angle.getPitch()))) * 100.f;
 	pos->y = player.pos.y + 100.f; //-100.f;
-	pos->z = player.pos.z + std::cos(radians(MAKEANGLE(player.angle.getPitch()))) * 100.f;
+	pos->z = player.pos.z + std::cos(glm::radians(MAKEANGLE(player.angle.getPitch()))) * 100.f;
 }
 
 /*!
@@ -1245,7 +1243,7 @@ void ARX_PLAYER_LoadHeroAnimsAndMesh(){
 	const char ANIM_WAIT_TWOHANDED[] = "graph/obj3d/anims/npc/human_wait_book_2handed.tea";
 	herowait_2h = EERIE_ANIMMANAGER_Load(ANIM_WAIT_TWOHANDED);
 	
-	Entity * io = new Entity("graph/obj3d/interactive/player/player");
+	Entity * io = new Entity("graph/obj3d/interactive/player/player", EntityInstance(-1));
 	arx_assert(io->index() == 0, "player entity didn't get index 0");
 	arx_assert(entities.player() == io);
 	
@@ -1256,7 +1254,6 @@ void ARX_PLAYER_LoadHeroAnimsAndMesh(){
 
 	ARX_INTERACTIVE_Show_Hide_1st(entities.player(), 0);
 	ARX_INTERACTIVE_HideGore(entities.player(), 1);
-	io->ident = -1;
 	
 	ANIM_Set(&player.bookAnimation[0], herowaitbook);
 	player.bookAnimation[0].flags |= EA_LOOP;
@@ -1711,8 +1708,8 @@ void ARX_PLAYER_Manage_Visual() {
 						player.jumpphase = NotJumping;
 						goto retry;
 					} else if(ause0->cur_anim == alist[ANIM_JUMP_END_PART2]
-					         && EEfabs(player.physics.velocity.x)
-					             + EEfabs(player.physics.velocity.z) > (4.f/TARGET_DT)
+					         && glm::abs(player.physics.velocity.x)
+					             + glm::abs(player.physics.velocity.z) > (4.f/TARGET_DT)
 					         && ause0->ctime > 1) {
 						AcquireLastAnim(io);
 						player.jumpphase = NotJumping;
@@ -1975,7 +1972,7 @@ bool Valid_Jump_Pos() {
 	long hum = 0;
 	for(float vv = 0; vv < 360.f; vv += 20.f) {
 		tmpp.origin = player.basePosition();
-		tmpp.origin += Vec3f(-std::sin(radians(vv)) * 20.f, 0.f, std::cos(radians(vv)) * 20.f);
+		tmpp.origin += Vec3f(-std::sin(glm::radians(vv)) * 20.f, 0.f, std::cos(glm::radians(vv)) * 20.f);
 		tmpp.radius = player.physics.cyl.radius;
 		float anything = CheckAnythingInCylinder(tmpp, entities.player(), CFLAG_JUST_TEST);
 		if(anything > 10) {
@@ -2122,7 +2119,7 @@ void PlayerMovementIterate(float DeltaTime) {
 			player.physics.cyl.origin = player.basePosition();
 		}
 		
-		if(EEfabs(lastposy - player.pos.y) < DeltaTime * 0.1f) {
+		if(glm::abs(lastposy - player.pos.y) < DeltaTime * 0.1f) {
 			TRUE_FIRM_GROUND = 1;
 		} else {
 			TRUE_FIRM_GROUND = 0;
@@ -2287,8 +2284,8 @@ void PlayerMovementIterate(float DeltaTime) {
 			float epcentery;
 			EERIEPOLY *ep = CheckInPoly(player.pos + Vec3f(0.f, 150.f, 0.f), &epcentery);
 			if(ep) {
-				if((ep->type & POLY_LAVA) && EEfabs(epcentery - (player.pos.y - player.baseHeight())) < 30) {
-					float mul = 1.f - (EEfabs(epcentery - (player.pos.y - player.baseHeight())) * (1.0f / 30));
+				if((ep->type & POLY_LAVA) && glm::abs(epcentery - (player.pos.y - player.baseHeight())) < 30) {
+					float mul = 1.f - (glm::abs(epcentery - (player.pos.y - player.baseHeight())) * (1.0f / 30));
 					const float LAVA_DAMAGE = 10.f;
 					float damages = LAVA_DAMAGE * framedelay * 0.01f * mul;
 					damages = ARX_SPELLS_ApplyFireProtection(entities.player(), damages);
@@ -2308,10 +2305,10 @@ void PlayerMovementIterate(float DeltaTime) {
 		}
 		player.physics.velocity.x *= dampen;
 		player.physics.velocity.z *= dampen;
-		if(EEfabs(player.physics.velocity.x) < 0.001f) {
+		if(glm::abs(player.physics.velocity.x) < 0.001f) {
 			player.physics.velocity.x = 0;
 		}
-		if(EEfabs(player.physics.velocity.z) < 0.001f) {
+		if(glm::abs(player.physics.velocity.z) < 0.001f) {
 			player.physics.velocity.z = 0;
 		}
 		
@@ -2354,8 +2351,8 @@ void PlayerMovementIterate(float DeltaTime) {
 		player.physics.forces = Vec3f_ZERO;
 		
 		// Check if player is already on firm ground AND not moving
-		if(EEfabs(player.physics.velocity.x) < 0.001f
-		   && EEfabs(player.physics.velocity.z) < 0.001f
+		if(glm::abs(player.physics.velocity.x) < 0.001f
+		   && glm::abs(player.physics.velocity.z) < 0.001f
 		   && player.onfirmground
 		   && player.jumpphase == NotJumping
 		) {
@@ -2615,7 +2612,7 @@ void ARX_PLAYER_AddGold(Entity * gold) {
 	
 	arx_assert(gold->ioflags & IO_GOLD);
 	
-	ARX_PLAYER_AddGold(gold->_itemdata->price * max((short)1, gold->_itemdata->count));
+	ARX_PLAYER_AddGold(gold->_itemdata->price * std::max((short)1, gold->_itemdata->count));
 	
 	ARX_SOUND_PlayInterface(SND_GOLD);
 	

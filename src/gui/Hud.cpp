@@ -298,7 +298,7 @@ public:
 								GRenderer->SetBlendFunc(Renderer::BlendOne, Renderer::BlendOne);
 								GRenderer->SetRenderState(Renderer::AlphaBlending, true);
 								
-								float fColorPulse = fabs(cos(radians(fDecPulse)));
+								float fColorPulse = glm::abs(glm::cos(glm::radians(fDecPulse)));
 								
 								Rectf rect(
 									Vec2f(px, py),
@@ -515,7 +515,7 @@ public:
 							EERIEDrawBitmap(rect, 0.001f, tc, Color::white);
 							GRenderer->SetRenderState(Renderer::AlphaBlending, false);
 						} else if(io->ioflags & IO_CAN_COMBINE) {
-							float fColorPulse = fabs(cos(radians(fDecPulse)));
+							float fColorPulse = glm::abs(glm::cos(glm::radians(fDecPulse)));
 							GRenderer->SetBlendFunc(Renderer::BlendOne, Renderer::BlendOne);
 							GRenderer->SetRenderState(Renderer::AlphaBlending, true);
 							
@@ -1070,7 +1070,7 @@ public:
 				Entity * io = NULL;
 
 				if(SecondaryInventory)
-					io = (Entity *)SecondaryInventory->io;
+					io = SecondaryInventory->io;
 				else if (player.Interface & INTER_STEAL)
 					io = ioSteal;
 
@@ -1559,7 +1559,7 @@ public:
 				if(!(player.rune_flags & (RuneFlag)(1<<player.SpellToMemorize.iSpellSymbols[i]))) {
 					GRenderer->SetBlendFunc(Renderer::BlendInvDstColor, Renderer::BlendOne);
 					GRenderer->SetRenderState(Renderer::AlphaBlending, true);
-					EERIEDrawBitmap2(Rectf(m_pos, 32, 32), 0, Movable, Color3f::gray(.8f).to<u8>());
+					EERIEDrawBitmap2(Rectf(m_pos, 32, 32), 0, cursorMovable, Color3f::gray(.8f).to<u8>());
 					GRenderer->SetRenderState(Renderer::AlphaBlending, false);
 				}
 				m_pos.x += INTERFACE_RATIO(32);
@@ -1754,7 +1754,7 @@ public:
 		if(fArrowMove > 180.f) {
 			fArrowMove=0.f;
 		}
-		fMove=fabs(sin(radians(fArrowMove)))*m_arrowSize.x*.5f;
+		fMove = glm::abs(glm::sin(glm::radians(fArrowMove)))*m_arrowSize.x*.5f;
 	}
 	
 	void draw() {
@@ -2325,7 +2325,7 @@ void manageEditorControlsHUD2()
 {
 	if(TSecondaryInventory) {
 		
-		Entity * temp=(Entity *)TSecondaryInventory->io;
+		Entity * temp = TSecondaryInventory->io;
 
 		if(temp && !(temp->ioflags & IO_SHOP) && !(temp == ioSteal)) {
 			pickAllIconGui.updateInput();

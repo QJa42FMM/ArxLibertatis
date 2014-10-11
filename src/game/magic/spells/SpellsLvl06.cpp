@@ -48,8 +48,8 @@ void RiseDeadSpell::GetTargetAndBeta(Vec3f & target, float & beta)
 		displace = (entities[m_caster]->ioflags & IO_NPC) == IO_NPC;
 	}
 	if(displace) {
-		target.x -= std::sin(radians(beta)) * 300.f;
-		target.z += std::cos(radians(beta)) * 300.f;
+		target.x -= std::sin(glm::radians(beta)) * 300.f;
+		target.z += std::cos(glm::radians(beta)) * 300.f;
 	}
 }
 
@@ -192,7 +192,7 @@ void RiseDeadSpell::Update(float timeDelta)
 		
 		float anything = CheckAnythingInCylinder(phys, NULL, CFLAG_JUST_TEST);
 		
-		if(EEfabs(anything) < 30) {
+		if(glm::abs(anything) < 30) {
 			
 			const char * cls = "graph/obj3d/interactive/npc/undead_base/undead_base";
 			Entity * io = AddNPC(cls, -1, IO_IMMEDIATELOAD);
@@ -252,7 +252,7 @@ void ParalyseSpell::Launch()
 		resist_magic = entities[m_target]->_npcdata->resist_magic;
 	}
 	if(rnd() * 100.f < resist_magic) {
-		float mul = max(0.5f, 1.f - (resist_magic * 0.005f));
+		float mul = std::max(0.5f, 1.f - (resist_magic * 0.005f));
 		m_duration = long(m_duration * mul);
 	}
 	
@@ -305,8 +305,8 @@ void CreateFieldSpell::Launch()
 		}
 	}
 	if(displace) {
-		target.x -= std::sin(radians(MAKEANGLE(beta))) * 250.f;
-		target.z += std::cos(radians(MAKEANGLE(beta))) * 250.f;
+		target.x -= std::sin(glm::radians(MAKEANGLE(beta))) * 250.f;
+		target.z += std::cos(glm::radians(MAKEANGLE(beta))) * 250.f;
 	}
 	
 	ARX_SOUND_PlaySFX(SND_SPELL_CREATE_FIELD, &target);

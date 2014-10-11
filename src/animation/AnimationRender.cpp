@@ -402,9 +402,9 @@ void Cedric_ApplyLightingFirstPartRefactor(Entity *io) {
 
 Vec3f angleToVecForCedricHalo(const Anglef & angle) {
 	Vec3f cam_vector;
-	cam_vector.x = -std::sin(radians(angle.getPitch())) * std::cos(radians(angle.getYaw()));
-	cam_vector.y =  std::sin(radians(angle.getYaw()));
-	cam_vector.z =  std::cos(radians(angle.getPitch())) * std::cos(radians(angle.getYaw()));
+	cam_vector.x = -std::sin(glm::radians(angle.getPitch())) * std::cos(glm::radians(angle.getYaw()));
+	cam_vector.y =  std::sin(glm::radians(angle.getYaw()));
+	cam_vector.z =  std::cos(glm::radians(angle.getPitch())) * std::cos(glm::radians(angle.getYaw()));
 	
 	return cam_vector;
 }
@@ -617,7 +617,7 @@ void AddFixedObjectHalo(const EERIE_FACE & face, const TransformInfo & t, const 
 		Vec3f temporary3D;
 		temporary3D = t.rotation * eobj->vertexlist[face.vid[o]].norm;
 
-		float power = 255.f-(float)EEfabs(255.f*(temporary3D.z)*( 1.0f / 2 ));
+		float power = 255.f- glm::abs(255.f*(temporary3D.z)*( 1.0f / 2 ));
 
 		power = glm::clamp(power, 0.f, 255.f);
 
@@ -627,7 +627,7 @@ void AddFixedObjectHalo(const EERIE_FACE & face, const TransformInfo & t, const 
 		u8 lfr = io->halo.color.r * power;
 		u8 lfg = io->halo.color.g * power;
 		u8 lfb = io->halo.color.b * power;
-		tvList[o].color = ((0xFF << 24) | (lfr << 16) | (lfg << 8) | (lfb));
+		tvList[o].color = Color(lfr, lfg, lfb, 255).toRGBA();
 	}
 
 	if(tot > 150.f) {
@@ -695,7 +695,7 @@ void AddFixedObjectHalo(const EERIE_FACE & face, const TransformInfo & t, const 
 
 			vert[1].p.x += (vect1.x + 0.2f - rnd() * 0.1f) * siz;
 			vert[1].p.y += (vect1.y + 0.2f - rnd() * 0.1f) * siz;
-			vert[1].color = 0xFF000000;
+			vert[1].color = Color(0, 0, 0, 255).toRGBA();
 
 			vert[0].p.z += 0.0001f;
 			vert[3].p.z += 0.0001f;
@@ -706,9 +706,9 @@ void AddFixedObjectHalo(const EERIE_FACE & face, const TransformInfo & t, const 
 			vert[2].p.y += (vect2.y + 0.2f - rnd() * 0.1f) * siz;
 
 			if(io->halo.flags & HALO_NEGATIVE)
-				vert[2].color = 0x00000000;
+				vert[2].color = Color(0, 0, 0, 0).toRGBA();
 			else
-				vert[2].color = 0xFF000000;
+				vert[2].color = Color(0, 0, 0, 255).toRGBA();
 
 			Halo_AddVertices(vert);
 		}
@@ -770,7 +770,7 @@ void DrawEERIEInter_Render(EERIE_3DOBJ *eobj, const TransformInfo &t, Entity *io
 
 			if(face.facetype & POLY_GLOW) {
 				// unaffected by light
-				tvList[n].color = 0xffffffff;
+				tvList[n].color = Color(255, 255, 255, 255).toRGBA();
 			} else {
 				// Normal Illuminations
 				tvList[n].color = eobj->vertexlist3[face.vid[n]].vert.color;
@@ -778,7 +778,7 @@ void DrawEERIEInter_Render(EERIE_3DOBJ *eobj, const TransformInfo &t, Entity *io
 
 			// TODO copy-paste
 			if(io && player.m_improve) {
-				long lr=(tvList[n].color>>16) & 255;
+				long lr = Color::fromRGBA(tvList[n].color).r;
 				float ffr=(float)(lr);
 
 				float dd = tvList[n].rhw;
@@ -787,8 +787,8 @@ void DrawEERIEInter_Render(EERIE_3DOBJ *eobj, const TransformInfo &t, Entity *io
 
 				Vec3f & norm = eobj->vertexlist[face.vid[n]].norm;
 
-				float fb=((1.f-dd)*6.f + (EEfabs(norm.x) + EEfabs(norm.y))) * 0.125f;
-				float fr=((.6f-dd)*6.f + (EEfabs(norm.z) + EEfabs(norm.y))) * 0.125f;
+				float fb=((1.f-dd)*6.f + (glm::abs(norm.x) + glm::abs(norm.y))) * 0.125f;
+				float fr=((.6f-dd)*6.f + (glm::abs(norm.z) + glm::abs(norm.y))) * 0.125f;
 
 				if(fr < 0.f)
 					fr = 0.f;
@@ -801,12 +801,12 @@ void DrawEERIEInter_Render(EERIE_3DOBJ *eobj, const TransformInfo &t, Entity *io
 				u8 lfr = fr;
 				u8 lfb = fb;
 				u8 lfg = 0x1E;
-				tvList[n].color = (0xff000000L | (lfr << 16) | (lfg << 8) | (lfb));
+				tvList[n].color = Color(lfr, lfg, lfb, 255).toRGBA();
 			}
 
 			// Transparent poly: storing info to draw later
 			if((face.facetype & POLY_TRANS) || invisibility > 0.f) {
-				tvList[n].color = Color::gray(fTransp).toBGR();
+				tvList[n].color = Color::gray(fTransp).toRGB();
 			}
 		}
 
@@ -948,10 +948,10 @@ void AddAnimatedObjectHalo(HaloInfo & haloInfo, const unsigned short * paf, floa
 
 	float tot = 0;
 	float _ffr[3];
-	ColorBGRA colors[3];
+	ColorRGBA colors[3];
 
 	for(size_t o = 0; o < 3; o++) {
-		float tttz	= EEfabs(eobj->vertexlist3[paf[o]].norm.z) * ( 1.0f / 2 );
+		float tttz	= glm::abs(eobj->vertexlist3[paf[o]].norm.z) * ( 1.0f / 2 );
 		float power = 255.f - (float)(255.f * tttz);
 		power *= (1.f - invisibility);
 
@@ -963,7 +963,7 @@ void AddAnimatedObjectHalo(HaloInfo & haloInfo, const unsigned short * paf, floa
 		u8 lfr = curhalo->color.r * power;
 		u8 lfg = curhalo->color.g * power;
 		u8 lfb = curhalo->color.b * power;
-		colors[o] = ((0xFF << 24) | (lfr << 16) | (lfg << 8) | (lfb));
+		colors[o] = Color(lfr, lfg, lfb, 255).toRGBA();
 	}
 
 	if(tot > 260) {
@@ -1039,11 +1039,11 @@ void AddAnimatedObjectHalo(HaloInfo & haloInfo, const unsigned short * paf, floa
 
 			vert[1].p.x += (vect1.x + 0.2f - rnd() * 0.1f) * siz;
 			vert[1].p.y += (vect1.y + 0.2f - rnd() * 0.1f) * siz;
-			vert[1].color = 0xFF000000;
+			vert[1].color = Color(0, 0, 0, 255).toRGBA();
 
 			float valll;
-			valll = 0.005f + (EEfabs(tvList[first].p.z) - EEfabs(tvList[third].p.z))
-						   + (EEfabs(tvList[second].p.z) - EEfabs(tvList[third].p.z));
+			valll = 0.005f + (glm::abs(tvList[first].p.z) - glm::abs(tvList[third].p.z))
+						   + (glm::abs(tvList[second].p.z) - glm::abs(tvList[third].p.z));
 			valll = 0.0001f + valll * ( 1.0f / 10 );
 
 			if(valll < 0.f)
@@ -1066,9 +1066,9 @@ void AddAnimatedObjectHalo(HaloInfo & haloInfo, const unsigned short * paf, floa
 			vert[2].p.z = (vert[2].p.z + MAX_ZEDE) * ( 1.0f / 2 );
 
 			if(curhalo->flags & HALO_NEGATIVE)
-				vert[2].color = 0x00000000;
+				vert[2].color = Color(0, 0, 0, 0).toRGBA();
 			else
-				vert[2].color = 0xFF000000;
+				vert[2].color = Color(0, 0, 0, 255).toRGBA();
 
 			Halo_AddVertices(vert);
 		}
@@ -1118,7 +1118,7 @@ static void Cedric_RenderObject(EERIE_3DOBJ * eobj, Skeleton * obj, Entity * io,
 		}
 
 		if((face.facetype & POLY_TRANS) || invisibility > 0.f) {
-			tvList[0].color = tvList[1].color = tvList[2].color = Color::gray(fTransp).toBGR();
+			tvList[0].color = tvList[1].color = tvList[2].color = Color::gray(fTransp).toRGB();
 		}
 
 		if(haloInfo.need_halo) {

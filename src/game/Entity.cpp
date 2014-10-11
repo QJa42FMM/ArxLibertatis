@@ -74,9 +74,11 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 
 extern Entity * pIOChangeWeapon;
 
-Entity::Entity(const res::path & classPath)
-	: m_index(size_t(-1)),
-	  m_classPath(classPath) {
+Entity::Entity(const res::path & classPath, EntityInstance instance)
+	: m_index(size_t(-1))
+	, m_id(classPath, instance)
+	, m_classPath(classPath)
+{
 	
 	m_index = entities.add(this);
 	
@@ -121,7 +123,6 @@ Entity::Entity(const res::path & classPath)
 	infracolor = Color3f::blue;
 	changeanim = -1;
 	
-	ident = 0;
 	weight = 1.f;
 	gameFlags = GFLAG_NEEDINIT | GFLAG_INTERACTIVITY;
 	velocity = Vec3f_ZERO;
@@ -146,8 +147,6 @@ Entity::Entity(const res::path & classPath)
 	ARX_HALO_SetToNative(this);
 	halo.dynlight = LightHandle::Invalid;
 	
-	std::memset(&script, 0, sizeof(EERIE_SCRIPT)); // TODO use constructor
-	std::memset(&over_script, 0, sizeof(EERIE_SCRIPT)); // TODO use constructor
 	stat_count = 0;
 	stat_sent = 0;
 	tweakerinfo = NULL;
@@ -271,16 +270,6 @@ Entity::~Entity() {
 	
 }
 
-std::string Entity::className() const {
-	return m_classPath.filename();
-}
-
-std::string Entity::idString() const {
-	std::stringstream ss;
-	ss << className() << '_' << std::setw(4) << std::setfill('0') << ident;
-	return ss.str();
-}
-
 res::path Entity::instancePath() const {
 	return m_classPath.parent() / idString();
 }
@@ -328,7 +317,7 @@ void Entity::destroy() {
 	
 	LogDebug("destroying entity " << idString());
 	
-	if(ident > 0 && !(ioflags & IO_NOSAVE)) {
+	if(instance() > 0 && !(ioflags & IO_NOSAVE)) {
 		if(scriptload) {
 			// In case we previously saved this entity...
 			currentSavedGameRemoveEntity(idString());

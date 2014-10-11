@@ -419,8 +419,8 @@ struct EERIE_MULTI3DSCENE {
 struct EERIE_PORTALS
 {
 	EERIEPOLY	poly;
-	long		room_1; // facing normal
-	long		room_2;
+	size_t		room_1; // facing normal
+	size_t		room_2;
 	short		useportal;
 	short		paddy;
 };
@@ -438,19 +438,24 @@ struct EERIE_ROOM_DATA {
 	EP_DATA * epdata;
 	Vec3f center;
 	float radius;
-	unsigned short * pussIndice;
+	unsigned short * indexBuffer;
 	VertexBuffer<SMY_VERTEX> * pVertexBuffer;
 	std::vector<TextureContainer *> ppTextureContainer;
+
+	EERIE_ROOM_DATA()
+		: nb_portals()
+		, portals()
+		, nb_polys()
+		, epdata()
+		, radius()
+		, indexBuffer()
+		, pVertexBuffer()
+	{}
 };
 
 struct EERIE_PORTAL_DATA
 {
-	long nb_rooms;
-	inline long roomsize() {
-		return nb_rooms + 1;
-	}
-
-	EERIE_ROOM_DATA * room;
+	std::vector<EERIE_ROOM_DATA> rooms;
 	std::vector<EERIE_PORTALS> portals;
 };
 

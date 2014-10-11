@@ -82,8 +82,6 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 #include "scene/Interactive.h"
 #include "scene/Light.h"
 
-using std::max;
-
 //TODO(lubosz): extern globals :(
 extern Color ulBKGColor;
 
@@ -125,7 +123,7 @@ void ARX_PARTICLES_Spawn_Lava_Burn(Vec3f * poss, Entity * io) {
 			if(io->obj->facelist[num].facetype & POLY_HIDE) {
 				continue;
 			}
-			if(EEfabs(pos.y-io->obj->vertexlist3[io->obj->facelist[num].vid[0]].v.y) > 50.f) {
+			if(glm::abs(pos.y-io->obj->vertexlist3[io->obj->facelist[num].vid[0]].v.y) > 50.f) {
 				continue;
 			}
 			notok = -1;
@@ -179,9 +177,9 @@ static void ARX_PARTICLES_Spawn_Blood3(const Vec3f & pos, float dmgs, Color col,
 	if(pd) {
 		
 		float power = (dmgs * (1.f/60)) + .9f;
-		pd->ov = pos + Vec3f(-sin(float(arxtime) * 0.001f), sin(float(arxtime) * 0.001f),
-		               cos(float(arxtime) * 0.001f)) * 30.f;
-		pd->siz = 3.5f * power + sin(float(arxtime) * (1.f/1000));
+		pd->ov = pos + Vec3f(-glm::sin(float(arxtime) * 0.001f), glm::sin(float(arxtime) * 0.001f),
+		               glm::cos(float(arxtime) * 0.001f)) * 30.f;
+		pd->siz = 3.5f * power + glm::sin(float(arxtime) * (1.f/1000));
 		pd->scale = Vec3f(-pd->siz * 0.5f);
 		pd->special = PARTICLE_SUB2 | SUBSTRACT | GRAVITY | ROTATING | MODULATE_ROTATION
 		              | flags;
@@ -326,21 +324,21 @@ void SpawnGroundSplat(const Sphere & sp, const Color3f & col, long flags) {
 
 			for(long k = 0; k < nbvert; k++) {
 				if(PointIn2DPolyXZ(&TheoricalSplat, ep->v[k].p.x, ep->v[k].p.z)
-					&& fabs(ep->v[k].p.y-py) < 100.f)
+					&& glm::abs(ep->v[k].p.y-py) < 100.f)
 				{
 					oki = true;
 					break;
 				}
 
 				if(PointIn2DPolyXZ(&TheoricalSplat, (ep->v[k].p.x+ep->center.x) * 0.5f, (ep->v[k].p.z+ep->center.z) * 0.5f)
-					&& fabs(ep->v[k].p.y-py) < 100.f)
+					&& glm::abs(ep->v[k].p.y-py) < 100.f)
 				{
 					oki = true;
 					break;
 				}
 			}
 
-			if(!oki && PointIn2DPolyXZ(&TheoricalSplat, ep->center.x, ep->center.z) && EEfabs(ep->center.y-py) < 100.f)
+			if(!oki && PointIn2DPolyXZ(&TheoricalSplat, ep->center.x, ep->center.z) && glm::abs(ep->center.y-py) < 100.f)
 				oki = true;
 
 			if(oki) {
@@ -374,7 +372,7 @@ void SpawnGroundSplat(const Sphere & sp, const Color3f & col, long flags) {
 					pb.rgb = col;
 
 					for(int k = 0; k < nbvert; k++) {
-						float vdiff=EEfabs(ep->v[k].p.y-RealSplatStart.y);
+						float vdiff=glm::abs(ep->v[k].p.y-RealSplatStart.y);
 						pb.u[k]=(ep->v[k].p.x-RealSplatStart.x)*hdiv;
 
 						if(pb.u[k]<0.5f)
@@ -1163,9 +1161,9 @@ void ARX_PARTICLES_Update(EERIE_CAMERA * cam)  {
 				Vec3f vect = part->oldpos - in;
 				vect = glm::normalize(vect);
 				TexturedVertex tv[3];
-				tv[0].color = part->rgb.toBGR();
-				tv[1].color = 0xFF666666;
-				tv[2].color = 0xFF000000;
+				tv[0].color = part->rgb.toRGB();
+				tv[1].color = Color(102, 102, 102, 255).toRGBA();
+				tv[2].color = Color(0, 0, 0, 255).toRGBA();
 				tv[0].p = out.p;
 				tv[0].rhw = out.rhw;
 				Vec3f temp;
@@ -1286,7 +1284,7 @@ void ARX_PARTICLES_Update(EERIE_CAMERA * cam)  {
 		} else if(part->is2D) {
 			
 			float siz2 = part->siz + part->scale.y * fd;
-			EERIEAddBitmap(mat, in.x, in.y, siz, siz2, in.z, tc, color);
+			EERIEAddBitmap(mat, in, siz, siz2, tc, color);
 			
 		} else {
 			

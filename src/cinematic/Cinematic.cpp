@@ -76,7 +76,7 @@ extern float DreamTable[];
 
 static bool FlashBlancEnCours;
 static float OldSpeedFlashBlanc;
-static int OldColorFlashBlanc;
+static Color OldColorFlashBlanc;
 
 extern float	FlashAlpha;
 
@@ -184,9 +184,9 @@ void Cinematic::New() {
 	key.force = 1;
 	key.pos = pos;
 	key.angz = angz;
-	key.color = 0x00FFFFFF;
-	key.colord = 0x00FFFFFF;
-	key.colorf = 0x00FFFFFF;
+	key.color = Color(255, 255, 255, 0);
+	key.colord = Color(255, 255, 255, 0);
+	key.colorf = Color(255, 255, 255, 0);
 	key.idsound = -1;
 	key.speed = 1.f;
 	key.posgrille = posgrille;
@@ -205,9 +205,9 @@ void Cinematic::New() {
 	key.force = 1;
 	key.pos = pos;
 	key.angz = angz;
-	key.color = 0x00FFFFFF;
-	key.colord = 0x00FFFFFF;
-	key.colorf = 0x00FFFFFF;
+	key.color = Color(255, 255, 255, 0);
+	key.colord = Color(255, 255, 255, 0);
+	key.colorf = Color(255, 255, 255, 0);
 	key.idsound = -1;
 	key.speed = 1.f;
 	key.posgrille = posgrille;
@@ -273,12 +273,12 @@ void Cinematic::DeleteDeviceObjects() {
 
 static float LightRND;
 
-int CalculLight(CinematicLight * light, Vec2f pos, int col)
+Color CalculLight(CinematicLight * light, Vec2f pos, Color col)
 {
 	float	ra = (float)sqrt((light->pos.x - pos.x) * (light->pos.x - pos.x) + (light->pos.y - pos.y) * (light->pos.y - pos.y));
 
 	if(ra > light->fallout) {
-		return (Color::fromBGRA(col) * LightRND).toBGRA();
+		return (col * LightRND);
 	} else {
 		Color3f color;
 
@@ -289,11 +289,11 @@ int CalculLight(CinematicLight * light, Vec2f pos, int col)
 			color = light->color * (LightRND * ra);
 		}
 		
-		Color in = Color::fromBGRA(col);
-		in.r = min(in.r + (int)color.r, 255);
-		in.g = min(in.g + (int)color.g, 255);
-		in.b = min(in.b + (int)color.b, 255);
-		return in.toBGRA();
+		Color in = col;
+		in.r = std::min(in.r + (int)color.r, 255);
+		in.g = std::min(in.g + (int)color.g, 255);
+		in.b = std::min(in.b + (int)color.b, 255);
+		return in;
 	}
 }
 
@@ -306,15 +306,15 @@ void TransformLocalVertex(Vec3f * vbase, TexturedVertex * d3dv) {
 	d3dv->p.z = vbase->z + LocalPos.z;
 }
 
-void DrawGrille(CinematicGrid * grille, int col, int fx, CinematicLight * light, Vec3f * posgrille, float angzgrille)
+void DrawGrille(CinematicGrid * grille, Color col, int fx, CinematicLight * light, Vec3f * posgrille, float angzgrille)
 {
 	int nb = grille->m_nbvertexs;
 	Vec3f * v = grille->m_vertexs;
 	TexturedVertex * d3dv = AllTLVertex;
 
 	LocalPos = *posgrille;
-	LocalSin = (float)sin(radians(angzgrille));
-	LocalCos = (float)cos(radians(angzgrille));
+	LocalSin = glm::sin(glm::radians(angzgrille));
+	LocalCos = glm::cos(glm::radians(angzgrille));
 
 	if((fx & 0x0000FF00) == FX_DREAM) {
 		float * dream = DreamTable;
@@ -328,9 +328,9 @@ void DrawGrille(CinematicGrid * grille, int col, int fx, CinematicLight * light,
 			TransformLocalVertex(&t, &vtemp);
 			EE_RTP(vtemp.p, d3dv);
 			if(light) {
-				d3dv->color = CalculLight(light, Vec2f(d3dv->p.x, d3dv->p.y), col);
+				d3dv->color = CalculLight(light, Vec2f(d3dv->p.x, d3dv->p.y), col).toRGBA();
 			} else {
-				d3dv->color = col;
+				d3dv->color = col.toRGBA();
 			}
 			d3dv->p.x = ADJUSTX(d3dv->p.x);
 			d3dv->p.y = ADJUSTY(d3dv->p.y);
@@ -343,9 +343,9 @@ void DrawGrille(CinematicGrid * grille, int col, int fx, CinematicLight * light,
 			TransformLocalVertex(v, &vtemp);
 			EE_RTP(vtemp.p, d3dv);
 			if(light) {
-				d3dv->color = CalculLight(light, Vec2f(d3dv->p.x, d3dv->p.y), col);
+				d3dv->color = CalculLight(light, Vec2f(d3dv->p.x, d3dv->p.y), col).toRGBA();
 			} else {
-				d3dv->color = col;
+				d3dv->color = col.toRGBA();
 			}
 			d3dv->p.x = ADJUSTX(d3dv->p.x);
 			d3dv->p.y = ADJUSTY(d3dv->p.y);
@@ -404,7 +404,7 @@ void Cinematic::Render(float FDIFF) {
 		tb = m_bitmaps[numbitmap];
 
 		//fx
-		int col = 0x00FFFFFF;
+		Color col = Color(255, 255, 255, 0);
 
 		switch(fx & 0x000000FF) {
 			case FX_FADEIN:
@@ -443,12 +443,12 @@ void Cinematic::Render(float FDIFF) {
 		PrepareCamera(&m_camera, g_size);
 		SetActiveCamera(&m_camera);
 
-		int alpha = ((int)(a * 255.f)) << 24;
+		int alpha = (int)(a * 255.f);
 
 		if(force ^ 1)
-			alpha = 0xFF000000;
-
-		col |= alpha;
+			alpha = 255;
+		
+		col.a = alpha;
 
 		CinematicLight lightt, *l = NULL;
 
@@ -491,9 +491,8 @@ void Cinematic::Render(float FDIFF) {
 
 			tb = m_bitmaps[numbitmapsuiv];
 
-			alpha = 0xFF000000 - alpha;
-			col &= 0x00FFFFFF;
-			col |= alpha;
+			alpha = 255 - alpha;
+			col.a = alpha;
 
 			l = NULL;
 

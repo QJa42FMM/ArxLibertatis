@@ -90,12 +90,6 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 
 #include "window/RenderWindow.h"
 
-using std::wistringstream;
-using std::min;
-using std::max;
-using std::string;
-using std::vector;
-
 static int newWidth;
 static int newHeight;
 static bool newFullscreen;
@@ -129,7 +123,6 @@ extern CheckboxWidget * fullscreenCheckbox;
 extern CycleTextWidget * pMenuSliderResol;
 
 float ARXTimeMenu;
-float ARXOldTimeMenu;
 float ARXDiffTimeMenu;
 
 bool bFade=false;
@@ -236,29 +229,29 @@ static void FadeInOut(float _fVal) {
 
 	TexturedVertex d3dvertex[4];
 
-	u32 iColor = Color::gray(_fVal).toBGR();
+	ColorRGBA iColor = Color::gray(_fVal).toRGB();
 	d3dvertex[0].p.x=0;
 	d3dvertex[0].p.y=0;
 	d3dvertex[0].p.z=0.f;
-	d3dvertex[0].rhw=0.999999f;
+	d3dvertex[0].rhw=1.f;
 	d3dvertex[0].color=iColor;
 
 	d3dvertex[1].p.x=static_cast<float>(g_size.width());
 	d3dvertex[1].p.y=0;
 	d3dvertex[1].p.z=0.f;
-	d3dvertex[1].rhw=0.999999f;
+	d3dvertex[1].rhw=1.f;
 	d3dvertex[1].color=iColor;
 
 	d3dvertex[2].p.x=0;
 	d3dvertex[2].p.y=static_cast<float>(g_size.height());
 	d3dvertex[2].p.z=0.f;
-	d3dvertex[2].rhw=0.999999f;
+	d3dvertex[2].rhw=1.f;
 	d3dvertex[2].color=iColor;
 
 	d3dvertex[3].p.x=static_cast<float>(g_size.width());
 	d3dvertex[3].p.y=static_cast<float>(g_size.height());
 	d3dvertex[3].p.z=0.f;
-	d3dvertex[3].rhw=0.999999f;
+	d3dvertex[3].rhw=1.f;
 	d3dvertex[3].color=iColor;
 
 	GRenderer->ResetTexture(0);
@@ -305,9 +298,9 @@ bool ProcessFadeInOut(bool _bFadeIn, float _fspeed) {
 
 bool Menu2_Render() {
 	
-	ARXOldTimeMenu = ARXTimeMenu;
-	ARXTimeMenu = arxtime.get_updated(false);
-	ARXDiffTimeMenu = ARXTimeMenu - ARXOldTimeMenu;
+	float time = arxtime.get_updated(false);
+	ARXDiffTimeMenu = time - ARXTimeMenu;
+	ARXTimeMenu = time;
 	
 	// this means ArxTimeMenu is reset
 	if(ARXDiffTimeMenu < 0) {
@@ -1237,7 +1230,7 @@ CMenuAllZone::CMenuAllZone() {
 
 	vMenuZone.clear();
 
-	vector<Widget*>::iterator i;
+	std::vector<Widget*>::iterator i;
 
 	for(i = vMenuZone.begin(); i != vMenuZone.end(); ++i) {
 		Widget *zone = *i;
@@ -1470,7 +1463,7 @@ void CheckboxWidget::Render() {
 	if(!vTex.empty()) {
 		TextureContainer *pTex = vTex[iState];
 		
-		Color color = (bCheck) ? Color::white : Color::fromBGRA(0xFF3F3F3F);
+		Color color = (bCheck) ? Color::white : Color(63, 63, 63, 255);
 		
 		float iY = 0;
 		{
@@ -1536,7 +1529,7 @@ CWindowMenu::CWindowMenu(Vec2i pos, Vec2i size)
 	eCurrentMenuState=NOP;
 
 
-	float fCalc	= fPosXCalc + (fDist * sin(radians(fAngle)));
+	float fCalc	= fPosXCalc + (fDist * glm::sin(glm::radians(fAngle)));
 
 	m_pos.x = checked_range_cast<int>(fCalc);
 }
@@ -1557,7 +1550,7 @@ void CWindowMenu::AddConsole(CWindowMenuConsole *_pMenuConsoleElement) {
 
 void CWindowMenu::Update(float _fDTime) {
 
-	float fCalc	= fPosXCalc + (fDist * sin(radians(fAngle)));
+	float fCalc	= fPosXCalc + (fDist * glm::sin(glm::radians(fAngle)));
 
 	m_pos.x = checked_range_cast<int>(fCalc);
 	fAngle += _fDTime * 0.08f;
@@ -1607,6 +1600,7 @@ CWindowMenuConsole::CWindowMenuConsole(Vec2i pos, Vec2i size, MENUSTATE _eMenuSt
 	, bEdit(false)
 	, lData(0)
 	, bMouseAttack(false)
+	, m_textCursorCurrentTime(0.f)
 {
 	m_offset = RATIO_2(pos);
 	m_size = RATIO_2(size);
@@ -1780,14 +1774,20 @@ void CWindowMenuConsole::UpdateText() {
 		Vec2i textSize = ((TextWidget*)pZoneClick)->pFont->getTextSize("|");
 		pZoneClick->rZone.bottom += textSize.y;
 	}
-
+	
+	m_textCursorCurrentTime += ARXDiffTimeMenu;
+	if(m_textCursorCurrentTime > m_textCursorFlashDuration * 2)
+		m_textCursorCurrentTime = 0;
+	
+	bool showTextCursor = m_textCursorCurrentTime > m_textCursorFlashDuration;
+	
+	if(showTextCursor) {
 	//DRAW CURSOR
 	TexturedVertex v[4];
 	GRenderer->ResetTexture(0);
-	float col=.5f+rnd()*.5f;
-	v[0].color = v[1].color = v[2].color = v[3].color = Color::gray(col).toBGR();
+	v[0].color = v[1].color = v[2].color = v[3].color = Color::white.toRGB();
 	v[0].p.z=v[1].p.z=v[2].p.z=v[3].p.z=0.f;    
-	v[0].rhw=v[1].rhw=v[2].rhw=v[3].rhw=0.999999f;
+	v[0].rhw=v[1].rhw=v[2].rhw=v[3].rhw=1.f;
 
 	v[0].p.x = (float)pZoneClick->rZone.right;
 	v[0].p.y = (float)pZoneClick->rZone.top;
@@ -1799,6 +1799,7 @@ void CWindowMenuConsole::UpdateText() {
 	v[3].p.y = v[2].p.y;
 
 	EERIEDRAWPRIM(Renderer::TriangleStrip, v, 4);
+	}
 }
 
 Widget * CWindowMenuConsole::GetTouch(bool keyTouched, int keyId, InputKeyId* pInputKeyId, bool _bValidateTest)
@@ -2461,7 +2462,7 @@ void ButtonWidget::Render() {
 
 	//affichage de la texture
 	if(pTex) {
-		Color color = (bCheck) ? Color::white : Color::fromBGRA(0xFF3F3F3F);
+		Color color = (bCheck) ? Color::white : Color(63, 63, 63, 255);
 		
 		EERIEDrawBitmap2(Rectf(rZone), 0, pTex, color);
 	}
@@ -2502,7 +2503,7 @@ CycleTextWidget::CycleTextWidget(int _iID, Vec2i pos)
 	rZone.left   = pos.x;
 	rZone.top    = pos.y;
 	rZone.right  = pos.x + pLeftButton->rZone.width() + pRightButton->rZone.width();
-	rZone.bottom = pos.y + max(pLeftButton->rZone.height(), pRightButton->rZone.height());
+	rZone.bottom = pos.y + std::max(pLeftButton->rZone.height(), pRightButton->rZone.height());
 
 	pRef = this;
 }
@@ -2528,15 +2529,15 @@ void CycleTextWidget::AddText(TextWidget *_pText) {
 
 	Vec2i textSize = _pText->GetTextSize();
 
-	rZone.right  = max(rZone.right, rZone.left + pLeftButton->rZone.width() + pRightButton->rZone.width() + textSize.x);
-	rZone.bottom = max(rZone.bottom, rZone.top + textSize.y);
+	rZone.right  = std::max(rZone.right, rZone.left + pLeftButton->rZone.width() + pRightButton->rZone.width() + textSize.x);
+	rZone.bottom = std::max(rZone.bottom, rZone.top + textSize.y);
 
 	pLeftButton->SetPos(Vec2i(rZone.left, rZone.top+(textSize.y>>2)));
 	pRightButton->SetPos(Vec2i(rZone.right-pRightButton->rZone.width(), rZone.top+(textSize.y>>2)));
 
 	int dx=rZone.right-rZone.left-pLeftButton->rZone.width()-pRightButton->rZone.width();
 	//on recentre tout
-	vector<TextWidget*>::iterator it;
+	std::vector<TextWidget*>::iterator it;
 
 	for(it = vText.begin(); it < vText.end(); ++it) {
 		TextWidget *pMenuElementText=*it;
@@ -2737,10 +2738,10 @@ SliderWidget::SliderWidget(int _iID, Vec2i pos)
 
 	rZone.left   = pos.x;
 	rZone.top    = pos.y;
-	rZone.right  = pos.x + pLeftButton->rZone.width() + pRightButton->rZone.width() + 10*max(pTex1->m_dwWidth, pTex2->m_dwWidth);
-	rZone.bottom = pos.y + max(pLeftButton->rZone.height(), pRightButton->rZone.height());
+	rZone.right  = pos.x + pLeftButton->rZone.width() + pRightButton->rZone.width() + 10 * std::max(pTex1->m_dwWidth, pTex2->m_dwWidth);
+	rZone.bottom = pos.y + std::max(pLeftButton->rZone.height(), pRightButton->rZone.height());
 	
-	pRightButton->Move(Vec2i(pLeftButton->rZone.width() + 10*max(pTex1->m_dwWidth, pTex2->m_dwWidth), 0));
+	pRightButton->Move(Vec2i(pLeftButton->rZone.width() + 10 * std::max(pTex1->m_dwWidth, pTex2->m_dwWidth), 0));
 
 	pRef = this;
 }
@@ -2833,7 +2834,7 @@ void SliderWidget::Update(int _iTime) {
 	pRightButton->SetPos(rZone.topLeft());
 
 
-	float fWidth = pLeftButton->rZone.width() + RATIO_X(10*max(pTex1->m_dwWidth, pTex2->m_dwWidth)) ;
+	float fWidth = pLeftButton->rZone.width() + RATIO_X(10 * std::max(pTex1->m_dwWidth, pTex2->m_dwWidth)) ;
 	pRightButton->Move(Vec2i(fWidth, 0));
 
 	rZone.right = rZone.left + pLeftButton->rZone.width() + pRightButton->rZone.width() + RATIO_X(10*std::max(pTex1->m_dwWidth, pTex2->m_dwWidth));
@@ -3028,9 +3029,9 @@ void MenuCursor::DrawLine2D(float _fSize, Color3f color) {
 	
 	TexturedVertex v[4];
 	v[0].p.z = v[1].p.z = v[2].p.z = v[3].p.z = 0.f;
-	v[0].rhw = v[1].rhw = v[2].rhw = v[3].rhw = 0.999999f;
+	v[0].rhw = v[1].rhw = v[2].rhw = v[3].rhw = 1.f;
 	
-	v[0].color = v[2].color = Color3f(fColorRed, fColorGreen, fColorBlue).toBGR();
+	v[0].color = v[2].color = Color3f(fColorRed, fColorGreen, fColorBlue).toRGB();
 	
 	if(!ComputePer(iOldCoord[0], iOldCoord[1], &v[0], &v[2], fTaille)) {
 		v[0].p.x = v[2].p.x = iOldCoord[0].x;
@@ -3046,7 +3047,7 @@ void MenuCursor::DrawLine2D(float _fSize, Color3f color) {
 		
 		if(ComputePer(iOldCoord[i], iOldCoord[i + 1], &v[1], &v[3], fTaille)) {
 			
-			v[1].color = v[3].color = Color3f(fColorRed, fColorGreen, fColorBlue).toBGR();
+			v[1].color = v[3].color = Color3f(fColorRed, fColorGreen, fColorBlue).toRGB();
 			EERIEDRAWPRIM(Renderer::TriangleStrip, v, 4);
 			
 			v[0].p.x = v[1].p.x;

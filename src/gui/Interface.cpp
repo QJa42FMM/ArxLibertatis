@@ -113,6 +113,7 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 
 #include "physics/Box.h"
 #include "physics/Collisions.h"
+#include "platform/profiler/Profiler.h"
 
 #include "scene/LinkedObject.h"
 #include "scene/GameSound.h"
@@ -346,13 +347,13 @@ bool ARX_INTERFACE_MouseInBook() {
 
 void ARX_INTERFACE_DrawNumber(const Vec2f & pos, const long num, const int _iNb, const Color color) {
 	
-	ColorBGRA col = color.toBGRA();
+	ColorRGBA col = color.toRGBA();
 	
 	TexturedVertex v[4];
-	v[0] = TexturedVertex(Vec3f_ZERO, 1.f, 1, Vec2f_ZERO);
-	v[1] = TexturedVertex(Vec3f_ZERO, 1.f, 1, Vec2f_X_AXIS);
-	v[2] = TexturedVertex(Vec3f_ZERO, 1.f, 1, Vec2f(1.f, 1.f));
-	v[3] = TexturedVertex(Vec3f_ZERO, 1.f, 1, Vec2f_Y_AXIS);
+	v[0] = TexturedVertex(Vec3f_ZERO, 1.f, ColorRGBA(1), Vec2f_ZERO);
+	v[1] = TexturedVertex(Vec3f_ZERO, 1.f, ColorRGBA(1), Vec2f_X_AXIS);
+	v[2] = TexturedVertex(Vec3f_ZERO, 1.f, ColorRGBA(1), Vec2f(1.f, 1.f));
+	v[3] = TexturedVertex(Vec3f_ZERO, 1.f, ColorRGBA(1), Vec2f_Y_AXIS);
 	
 	v[0].p.z = v[1].p.z = v[2].p.z = v[3].p.z = 0.0000001f;
 
@@ -1253,8 +1254,10 @@ static ARX_INTERFACE_BOOK_MODE prevBookPage() {
 
 extern unsigned long REQUEST_JUMP;
 //-----------------------------------------------------------------------------
-void ArxGame::managePlayerControls()
-{
+void ArxGame::managePlayerControls() {
+	
+	ARX_PROFILE_FUNC();
+	
 	if(   (EERIEMouseButton & 4)
 	   && !(player.Interface & INTER_COMBATMODE)
 	   && !player.doingmagic
@@ -1341,7 +1344,7 @@ void ArxGame::managePlayerControls()
 
 			// Checks WALK_FORWARD Key Status.
 			if(GInput->actionPressed(CONTROLS_CUST_WALKFORWARD)) {
-				float tr=radians(eyeball.angle.getPitch());
+				float tr = glm::radians(eyeball.angle.getPitch());
 				eyeball.pos.x += -std::sin(tr) * 20.f * FD * 0.033f;
 				eyeball.pos.z += +std::cos(tr) * 20.f * FD * 0.033f;
 				NOMOREMOVES=1;
@@ -1349,7 +1352,7 @@ void ArxGame::managePlayerControls()
 
 			// Checks WALK_BACKWARD Key Status.
 			if(GInput->actionPressed(CONTROLS_CUST_WALKBACKWARD)) {
-				float tr=radians(eyeball.angle.getPitch());
+				float tr = glm::radians(eyeball.angle.getPitch());
 				eyeball.pos.x +=  std::sin(tr) * 20.f * FD * 0.033f;
 				eyeball.pos.z += -std::cos(tr) * 20.f * FD * 0.033f;
 				NOMOREMOVES=1;
@@ -1360,7 +1363,7 @@ void ArxGame::managePlayerControls()
 				(GInput->actionPressed(CONTROLS_CUST_STRAFE)&&GInput->actionPressed(CONTROLS_CUST_TURNLEFT)))
 				&& !NOMOREMOVES)
 			{
-				float tr=radians(MAKEANGLE(eyeball.angle.getPitch()+90.f));
+				float tr = glm::radians(MAKEANGLE(eyeball.angle.getPitch()+90.f));
 				eyeball.pos.x += -std::sin(tr) * 10.f * FD * 0.033f;
 				eyeball.pos.z += +std::cos(tr) * 10.f * FD * 0.033f;
 				NOMOREMOVES=1;			
@@ -1371,7 +1374,7 @@ void ArxGame::managePlayerControls()
 				(GInput->actionPressed(CONTROLS_CUST_STRAFE)&&GInput->actionPressed(CONTROLS_CUST_TURNRIGHT)))
 				&& !NOMOREMOVES)
 			{
-				float tr=radians(MAKEANGLE(eyeball.angle.getPitch()-90.f));
+				float tr = glm::radians(MAKEANGLE(eyeball.angle.getPitch()-90.f));
 				eyeball.pos.x += -std::sin(tr) * 10.f * FD * 0.033f;
 				//eyeball.pos.y+=FD*0.33f;
 				eyeball.pos.z +=  std::cos(tr) * 10.f * FD * 0.033f;
@@ -1432,13 +1435,13 @@ void ArxGame::managePlayerControls()
 				multi = 0.8f;
 			}
 
-			float t = radians(player.angle.getPitch());
+			float t = glm::radians(player.angle.getPitch());
 			multi = 5.f * FD * MoveDiv * multi;
 			tm.x += std::sin(t) * multi;
 			tm.z -= std::cos(t) * multi;
 
 			if(!USE_PLAYERCOLLISIONS) {
-				t=radians(player.angle.getYaw());
+				t = glm::radians(player.angle.getYaw());
 				tm.y-=std::sin(t)*multi;
 			}
 
@@ -1459,13 +1462,13 @@ void ArxGame::managePlayerControls()
 				multi=0.8f;
 			}
 
-			float t = radians(player.angle.getPitch());
+			float t = glm::radians(player.angle.getPitch());
 			multi = 10.f * FD * MoveDiv * multi;
 			tm.x -= std::sin(t) * multi;
 			tm.z += std::cos(t) * multi;
 
 			if(!USE_PLAYERCOLLISIONS) {
-				t=radians(player.angle.getYaw());
+				t = glm::radians(player.angle.getYaw());
 				tm.y+=std::sin(t)*multi;
 			}
 
@@ -1480,7 +1483,7 @@ void ArxGame::managePlayerControls()
 		// Checks STRAFE_LEFT Key Status.
 		if(left && !NOMOREMOVES) {
 			CurrFightPos=0;
-			float t = radians(MAKEANGLE(player.angle.getPitch()+90.f));
+			float t = glm::radians(MAKEANGLE(player.angle.getPitch()+90.f));
 			float multi = 6.f * FD * MoveDiv;
 			tm.x -= std::sin(t) * multi;
 			tm.z += std::cos(t) * multi;
@@ -1496,7 +1499,7 @@ void ArxGame::managePlayerControls()
 		// Checks STRAFE_RIGHT Key Status.
 		if(right && !NOMOREMOVES) {
 			CurrFightPos=1;
-			float t = radians(MAKEANGLE(player.angle.getPitch()-90.f));
+			float t = glm::radians(MAKEANGLE(player.angle.getPitch()-90.f));
 			float multi = 6.f * FD * MoveDiv;
 			tm.x -= std::sin(t) * multi;
 			tm.z += std::cos(t) * multi;
@@ -2083,7 +2086,7 @@ void ArxGame::manageKeyMouse() {
 						bool bOk = true;
 
 						if(SecondaryInventory != NULL) {
-							Entity * temp = (Entity *)SecondaryInventory->io;
+							Entity * temp = SecondaryInventory->io;
 
 							if(IsInSecondaryInventory(FlyingOverIO))
 								if(temp->ioflags & IO_SHOP)
@@ -2350,7 +2353,7 @@ void ArxGame::manageKeyMouse() {
 						player.desiredangle.setYaw(301.f);
 				}
 
-				if(EEfabs(rotation.y) > 2.f)
+				if(glm::abs(rotation.y) > 2.f)
 					entities.player()->animBlend.lastanimtime = 0;
 
 				if(rotation.x != 0.f)
@@ -2840,7 +2843,7 @@ void ARX_INTERFACE_ManageOpenedBook_Finish()
 									player.SpellToMemorize.lTimeCreation = (unsigned long)(arxtime);
 								}
 							} else {
-								color = Color::fromBGRA(0xFFa8d0df);
+								color = Color(168, 208, 223, 255);
 							}
 							
 							GRenderer->GetTextureStage(0)->setMagFilter(TextureStage::FilterLinear);
@@ -4083,7 +4086,9 @@ void ARX_INTERFACE_ManageOpenedBook() {
 
 //-----------------------------------------------------------------------------
 void ArxGame::manageEditorControls() {
-
+	
+	ARX_PROFILE_FUNC();
+	
 	eMouseState = MOUSE_IN_WORLD;
 
 	if(   TRUE_PLAYER_MOUSELOOK_ON
@@ -4100,7 +4105,7 @@ void ArxGame::manageEditorControls() {
 		Entity * io = NULL;
 
 		if(SecondaryInventory)
-			io = (Entity *)SecondaryInventory->io;
+			io = SecondaryInventory->io;
 		else if (player.Interface & INTER_STEAL)
 			io = ioSteal;
 
@@ -4113,13 +4118,8 @@ void ArxGame::manageEditorControls() {
 	}
 	
 	playerInterfaceFader.update();
-	
 	cinematicBorder.update();
-
-
-
-	/////////////////////////////////////////////////////
-
+	
 	if(EERIEMouseButton & 1) {
 		static Vec2s dragThreshold = Vec2s_ZERO;
 		
@@ -4138,15 +4138,9 @@ void ArxGame::manageEditorControls() {
 	} else {
 		DRAGGING = false;
 	}
-
-	//-------------------------------------------------------------------------
-	// interface
-	//-------------------------------------------------------------------------
-	// torch
+	
 	manageEditorControlsHUD();
-
-
-
+	
 	// gros player book
 	if(player.Interface & INTER_MAP) {
 		Vec2f pos(97 * g_sizeRatio.x, 64 * g_sizeRatio.y);
@@ -4164,7 +4158,7 @@ void ArxGame::manageEditorControls() {
 		if(mouseTestRect.contains(Vec2i(DANAEMouse))) {
 			eMouseState = MOUSE_IN_BOOK;
 		}
-}
+	}
 	
 	// gros book/note
 	if(player.Interface & INTER_NOTE) {
@@ -4175,10 +4169,7 @@ void ArxGame::manageEditorControls() {
 	}
 	
 	manageEditorControlsHUD2();
-
-	//-------------------------------------------------------------------------
-
-
+	
 	// Single Click On Object
 	if(   (LastMouseClick & 1)
 	   && !(EERIEMouseButton & 1)
@@ -4296,9 +4287,9 @@ void ArxGame::manageEditorControls() {
 						float y_ratio=(float)((float)DANAEMouse.y-(float)g_size.center().y)/(float)g_size.height()*2;
 						float x_ratio=-(float)((float)DANAEMouse.x-(float)g_size.center().x)/(float)g_size.center().x;
 						Vec3f viewvector;
-						viewvector.x = -std::sin(radians(player.angle.getPitch()+(x_ratio*30.f))) * std::cos(radians(player.angle.getYaw()));
-						viewvector.y =  std::sin(radians(player.angle.getYaw())) + y_ratio;
-						viewvector.z =  std::cos(radians(player.angle.getPitch()+(x_ratio*30.f))) * std::cos(radians(player.angle.getYaw()));
+						viewvector.x = -std::sin(glm::radians(player.angle.getPitch()+(x_ratio*30.f))) * std::cos(glm::radians(player.angle.getYaw()));
+						viewvector.y =  std::sin(glm::radians(player.angle.getYaw())) + y_ratio;
+						viewvector.z =  std::cos(glm::radians(player.angle.getPitch()+(x_ratio*30.f))) * std::cos(glm::radians(player.angle.getYaw()));
 						
 						io->soundtime=0;
 						io->soundcount=0;
@@ -4417,7 +4408,7 @@ void ArxGame::manageEditorControls() {
 			bool accept_combine = true;
 			
 			if((SecondaryInventory!=NULL) && (InSecondaryInventoryPos(DANAEMouse))) {
-				Entity * io=(Entity *)SecondaryInventory->io;
+				Entity * io = SecondaryInventory->io;
 				
 				if(io->ioflags & IO_SHOP)
 					accept_combine = false;

@@ -87,7 +87,6 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 
 #include "platform/profiler/Profiler.h"
 
-using std::vector;
 
 extern TextureContainer *enviro;
 extern Color ulBKGColor;
@@ -184,8 +183,8 @@ public:
 
 EERIE_FRUSTRUM_PLANE efpPlaneNear;
 
-static vector<EERIEPOLY*> vPolyWater;
-static vector<EERIEPOLY*> vPolyLava;
+static std::vector<EERIEPOLY*> vPolyWater;
+static std::vector<EERIEPOLY*> vPolyLava;
 
 void PopAllTriangleListTransparency();
 
@@ -205,16 +204,17 @@ static void ApplyLavaGlowToVertex(Vec3f * odtv,TexturedVertex * dtv, float power
 	float f;
 	long lr, lg, lb;
 	power = 1.f - std::sin(WATEREFFECT + odtv->x + odtv->z) * 0.05f * power;
-	f = ((dtv->color >> 16) & 255) * power;
+	Color inColor = Color::fromRGBA(dtv->color);
+	f = inColor.r * power;
 	lr = clipByte(f);
 
-	f = ((dtv->color >> 8) & 255) * power;
+	f = inColor.g * power;
 	lg = clipByte(f);
 
-	f = ((dtv->color) & 255) * power;
+	f = inColor.b * power;
 	lb = clipByte(f);
 
-	dtv->color = (0xFF000000L | (lr << 16) | (lg << 8) | (lb));
+	dtv->color = Color(lr, lg, lb, 255).toRGBA();
 }
 
 void ManageWater_VertexBuffer(EERIEPOLY * ep, const long to, const unsigned long tim, SMY_VERTEX * _pVertex) {
@@ -542,7 +542,7 @@ long ARX_PORTALS_GetRoomNumForCamera(float * height)
 	float dist=0.f;
 
 	while(dist<=20.f) {
-		float vvv=radians(ACTIVECAM->angle.getPitch());
+		float vvv = glm::radians(ACTIVECAM->angle.getPitch());
 		ep=CheckInPoly(ACTIVECAM->orgTrans.pos + Vec3f(std::sin(vvv) * dist, 0.f, -std::cos(vvv) * dist));
 
 		if(ep && ep->room > -1) {
@@ -559,8 +559,10 @@ long ARX_PORTALS_GetRoomNumForCamera(float * height)
 }
 
 // flag==1 for player
-long ARX_PORTALS_GetRoomNumForPosition(const Vec3f & pos,long flag)
-{
+long ARX_PORTALS_GetRoomNumForPosition(const Vec3f & pos,long flag) {
+	
+	ARX_PROFILE_FUNC();
+	
 	long num;
 	float height;
 
@@ -573,9 +575,9 @@ long ARX_PORTALS_GetRoomNumForPosition(const Vec3f & pos,long flag)
 		long nearest = -1;
 		float nearest_dist = 99999.f;
 
-		for(long n = 0; n < portals->nb_rooms; n++) { //TODO off by one ? (portals->nb_rooms + 1)
-			for(long lll = 0; lll < portals->room[n].nb_portals; lll++) {
-				EERIE_PORTALS *po = &portals->portals[portals->room[n].portals[lll]];
+		for(size_t n = 0; n < portals->rooms.size(); n++) {
+			for(long lll = 0; lll < portals->rooms[n].nb_portals; lll++) {
+				EERIE_PORTALS *po = &portals->portals[portals->rooms[n].portals[lll]];
 				EERIEPOLY *epp = &po->poly;
 
 				if(PointIn2DPolyXZ(epp, pos.x, pos.z)) {
@@ -606,7 +608,7 @@ long ARX_PORTALS_GetRoomNumForPosition(const Vec3f & pos,long flag)
 
 void ARX_PORTALS_Frustrum_ClearIndexCount(long room_num) {
 
-	EERIE_ROOM_DATA & room = portals->room[room_num];
+	EERIE_ROOM_DATA & room = portals->rooms[room_num];
 	
 	std::vector<TextureContainer *>::const_iterator itr;
 	for(itr = room.ppTextureContainer.begin(); itr != room.ppTextureContainer.end(); ++itr) {
@@ -635,11 +637,11 @@ void ARX_PORTALS_InitDrawnRooms()
 		ep->useportal = 0;
 	}
 
-	for(long i = 0; i < portals->roomsize(); i++) {
+	for(size_t i = 0; i < portals->rooms.size(); i++) {
 		ARX_PORTALS_Frustrum_ClearIndexCount(i);
 	}
 
-	RoomDraw.resize(portals->roomsize());
+	RoomDraw.resize(portals->rooms.size());
 
 	for(size_t i = 0; i < RoomDraw.size(); i++) {
 		RoomDraw[i].count=0;
@@ -789,7 +791,7 @@ void RoomDrawRelease() {
 	RoomDraw.resize(0);
 }
 
-void RoomFrustrumAdd(long num, const EERIE_FRUSTRUM & fr)
+void RoomFrustrumAdd(size_t num, const EERIE_FRUSTRUM & fr)
 {
 	if(RoomDraw[num].frustrum.nb_frustrums < MAX_FRUSTRUMS - 1) {
 		RoomDraw[num].frustrum.frustrums[RoomDraw[num].frustrum.nb_frustrums] = fr;
@@ -819,9 +821,9 @@ static void RenderWaterBatch() {
 float FluidTextureDisplacement(bool calcSin, const TexturedVertex& v, float time, float divVar1, float divVar2, 
                                float divVar3, float divVar4, float addVar1 = 0, float addVar2 = 0, float sign = 1) {
 	if(calcSin) {
-		return (v.p.x + addVar1)*(1.f/divVar1) + sign * (sin((v.p.x + addVar2)*(1.f/divVar2) + time * (1.f/divVar3))) * (1.f/divVar4);
+		return (v.p.x + addVar1)*(1.f/divVar1) + sign * (glm::sin((v.p.x + addVar2)*(1.f/divVar2) + time * (1.f/divVar3))) * (1.f/divVar4);
 	}
-	return (v.p.z + addVar1)*(1.f/divVar1) + sign * (cos((v.p.z + addVar2)*(1.f/divVar2) + time * (1.f/divVar3))) * (1.f/divVar4);
+	return (v.p.z + addVar1)*(1.f/divVar1) + sign * (glm::cos((v.p.z + addVar2)*(1.f/divVar2) + time * (1.f/divVar3))) * (1.f/divVar4);
 }
 
 void CalculateWaterDisplacement(float& fTu, float& fTv, EERIEPOLY* ep, float time, int vertIndex, int step) {
@@ -898,7 +900,7 @@ static void RenderWater() {
 			pVertex->p.x = ep->v[j].p.x;
 			pVertex->p.y = -ep->v[j].p.y;
 			pVertex->p.z = ep->v[j].p.z;
-			pVertex->color = 0xFF505050;
+			pVertex->color = Color(80, 80, 80, 255).toRGBA();
 
 			for(int i = 0; i < FTVU_STEP_COUNT; ++i) {
 				CalculateWaterDisplacement(fTu, fTv, ep, time, j, i);
@@ -1003,7 +1005,7 @@ void RenderLava() {
 			pVertex->p.x = ep->v[j].p.x;
 			pVertex->p.y = -ep->v[j].p.y;
 			pVertex->p.z = ep->v[j].p.z;
-			pVertex->color = 0xFF666666;
+			pVertex->color = Color(102, 102, 102, 255).toRGBA();
 			for(int i = 0; i < FTVU_STEP_COUNT; ++i) {
 				CalculateLavaDisplacement(fTu, fTv, ep, time, j, i);
 				pVertex->uv[i].x = fTu;
@@ -1039,7 +1041,7 @@ void ARX_PORTALS_Frustrum_RenderRoomTCullSoft(long room_num, const EERIE_FRUSTRU
 	if(!RoomDraw[room_num].count)
 		return;
 
-	EERIE_ROOM_DATA & room = portals->room[room_num];
+	EERIE_ROOM_DATA & room = portals->rooms[room_num];
 
 	if(!room.pVertexBuffer) {
 		// No need to spam this for every frame as there will already be an
@@ -1050,7 +1052,7 @@ void ARX_PORTALS_Frustrum_RenderRoomTCullSoft(long room_num, const EERIE_FRUSTRU
 
 	SMY_VERTEX * pMyVertex = room.pVertexBuffer->lock(NoOverwrite);
 
-	unsigned short *pIndices=room.pussIndice;
+	unsigned short *pIndices=room.indexBuffer;
 
 	EP_DATA *pEPDATA = &room.epdata[0];
 
@@ -1143,12 +1145,12 @@ void ARX_PORTALS_Frustrum_RenderRoomTCullSoft(long room_num, const EERIE_FRUSTRU
 
 		if(!player.m_improve) { // Normal View...
 			if(ep->type & POLY_GLOW) {
-				pMyVertexCurr[ep->uslInd[0]].color = 0xFFFFFFFF;
-				pMyVertexCurr[ep->uslInd[1]].color = 0xFFFFFFFF;
-				pMyVertexCurr[ep->uslInd[2]].color = 0xFFFFFFFF;
+				pMyVertexCurr[ep->uslInd[0]].color = Color(255, 255, 255, 255).toRGBA();
+				pMyVertexCurr[ep->uslInd[1]].color = Color(255, 255, 255, 255).toRGBA();
+				pMyVertexCurr[ep->uslInd[2]].color = Color(255, 255, 255, 255).toRGBA();
 
 				if(to == 4) {
-					pMyVertexCurr[ep->uslInd[3]].color = 0xFFFFFFFF;
+					pMyVertexCurr[ep->uslInd[3]].color = Color(255, 255, 255, 255).toRGBA();
 				}
 			} else {
 				if(!(ep->type & POLY_TRANS)) {
@@ -1181,7 +1183,7 @@ void ARX_PORTALS_Frustrum_RenderRoomTCullSoft(long room_num, const EERIE_FRUSTRU
 				ApplyTileLights(ep, pEPDATA->p);
 
 				for(int k = 0; k < to; k++) {
-					long lr=(ep->tv[k].color>>16) & 255;
+					long lr = Color::fromRGBA(ep->tv[k].color).r;
 					float ffr=(float)(lr);
 
 					float dd = ep->tv[k].rhw;
@@ -1190,8 +1192,8 @@ void ARX_PORTALS_Frustrum_RenderRoomTCullSoft(long room_num, const EERIE_FRUSTRU
 
 					Vec3f & norm = ep->nrml[k];
 
-					float fb=((1.f-dd)*6.f + (EEfabs(norm.x) + EEfabs(norm.y))) * 0.125f;
-					float fr=((.6f-dd)*6.f + (EEfabs(norm.z) + EEfabs(norm.y))) * 0.125f;
+					float fb=((1.f-dd)*6.f + (glm::abs(norm.x) + glm::abs(norm.y))) * 0.125f;
+					float fr=((.6f-dd)*6.f + (glm::abs(norm.z) + glm::abs(norm.y))) * 0.125f;
 
 					if(fr < 0.f)
 						fr = 0.f;
@@ -1204,8 +1206,8 @@ void ARX_PORTALS_Frustrum_RenderRoomTCullSoft(long room_num, const EERIE_FRUSTRU
 					u8 lfr = fr;
 					u8 lfb = fb;
 					u8 lfg = 0x1E;
-
-					ep->tv[k].color = (0xff000000L | (lfr << 16) | (lfg << 8) | (lfb));
+					
+					ep->tv[k].color = Color(lfr, lfg, lfb, 255).toRGBA();
 				}
 
 				pMyVertexCurr[ep->uslInd[0]].color = ep->tv[0].color;
@@ -1225,7 +1227,7 @@ void ARX_PORTALS_Frustrum_RenderRoomTCullSoft(long room_num, const EERIE_FRUSTRU
 
 void ARX_PORTALS_Frustrum_RenderRoomTCullSoftRender(long room_num) {
 
-	EERIE_ROOM_DATA & room = portals->room[room_num];
+	EERIE_ROOM_DATA & room = portals->rooms[room_num];
 
 	//render opaque
 	GRenderer->SetCulling(Renderer::CullNone);
@@ -1251,7 +1253,7 @@ void ARX_PORTALS_Frustrum_RenderRoomTCullSoftRender(long room_num) {
 				Renderer::TriangleList,
 				roomMat.uslNbVertex,
 				roomMat.uslStartVertex,
-				&room.pussIndice[roomMat.offset[SMY_ARXMAT::Opaque]],
+				&room.indexBuffer[roomMat.offset[SMY_ARXMAT::Opaque]],
 				roomMat.count[SMY_ARXMAT::Opaque]);
 
 			EERIEDrawnPolys += roomMat.count[SMY_ARXMAT::Opaque];
@@ -1276,7 +1278,7 @@ static const SMY_ARXMAT::TransparencyType transRenderOrder[] = {
 void ARX_PORTALS_Frustrum_RenderRoom_TransparencyTSoftCull(long room_num)
 {
 	//render transparency
-	EERIE_ROOM_DATA & room = portals->room[room_num];
+	EERIE_ROOM_DATA & room = portals->rooms[room_num];
 	
 	std::vector<TextureContainer *>::const_iterator itr;
 	for(itr = room.ppTextureContainer.begin(); itr != room.ppTextureContainer.end(); ++itr) {
@@ -1324,7 +1326,7 @@ void ARX_PORTALS_Frustrum_RenderRoom_TransparencyTSoftCull(long room_num)
 				Renderer::TriangleList,
 				roomMat.uslNbVertex,
 				roomMat.uslStartVertex,
-				&room.pussIndice[roomMat.offset[transType]],
+				&room.indexBuffer[roomMat.offset[transType]],
 				roomMat.count[transType]);
 
 			EERIEDrawnPolys += roomMat.count[transType];
@@ -1332,23 +1334,26 @@ void ARX_PORTALS_Frustrum_RenderRoom_TransparencyTSoftCull(long room_num)
 	}
 }
 
-void ARX_PORTALS_Frustrum_ComputeRoom(long room_num, const EERIE_FRUSTRUM & frustrum)
+void ARX_PORTALS_Frustrum_ComputeRoom(size_t roomIndex, const EERIE_FRUSTRUM & frustrum)
 {
-	if(RoomDraw[room_num].count == 0) {
-		RoomDrawList.push_back(room_num);
+	if(RoomDraw[roomIndex].count == 0) {
+		RoomDrawList.push_back(roomIndex);
 	}
-
-	RoomFrustrumAdd(room_num, frustrum);
-	RoomDraw[room_num].count++;
+	
+	RoomFrustrumAdd(roomIndex, frustrum);
+	RoomDraw[roomIndex].count++;
 
 	float fClippZFar = ACTIVECAM->cdepth * (fZFogEnd*1.1f);
-
+	
+	EERIE_ROOM_DATA & room = portals->rooms[roomIndex];
+	
 	// Now Checks For room Portals !!!
-	for(long lll=0; lll<portals->room[room_num].nb_portals; lll++) {
-		if(portals->portals[portals->room[room_num].portals[lll]].useportal)
+	for(long lll = 0; lll < room.nb_portals; lll++) {
+		EERIE_PORTALS *po = &portals->portals[room.portals[lll]];
+		
+		if(po->useportal)
 			continue;
-
-		EERIE_PORTALS *po = &portals->portals[portals->room[room_num].portals[lll]];
+		
 		EERIEPOLY *epp = &po->poly;
 	
 		//clipp NEAR & FAR
@@ -1383,13 +1388,13 @@ void ARX_PORTALS_Frustrum_ComputeRoom(long room_num, const EERIE_FRUSTRUM & frus
 		EERIE_FRUSTRUM fd;
 		CreateFrustrum(fd, ACTIVECAM->orgTrans.pos, *epp, Cull);
 
-		long roomToCompute = 0;
+		size_t roomToCompute = 0;
 		bool computeRoom = false;
 
-		if(po->room_1 == room_num && !Cull) {
+		if(po->room_1 == roomIndex && !Cull) {
 			roomToCompute = po->room_2;
 			computeRoom = true;
-		}else if(po->room_2 == room_num && Cull) {
+		}else if(po->room_2 == roomIndex && Cull) {
 			roomToCompute = po->room_1;
 			computeRoom = true;
 		}
@@ -1443,9 +1448,10 @@ void ARX_SCENE_Update() {
 	if(room_num>-1) {
 
 		ARX_PORTALS_InitDrawnRooms();
+		size_t roomIndex = static_cast<size_t>(room_num);
 		EERIE_FRUSTRUM frustrum;
 		CreateScreenFrustrum(&frustrum);
-		ARX_PORTALS_Frustrum_ComputeRoom(room_num, frustrum);
+		ARX_PORTALS_Frustrum_ComputeRoom(roomIndex, frustrum);
 
 		for(size_t i = 0; i < RoomDrawList.size(); i++) {
 			ARX_PORTALS_Frustrum_RenderRoomTCullSoft(RoomDrawList[i], RoomDraw[RoomDrawList[i]].frustrum, tim);

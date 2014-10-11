@@ -35,7 +35,7 @@ static const char vertexShaderSource[] = "void main() {\n"
 	"	// Convert pre-transformed D3D vertices to OpenGL vertices.\n"
 	"	float w = 1.0 / gl_Vertex.w;\n"
 	"	vec4 vertex = vec4(gl_Vertex.xyz * w, w);\n"
-	"	// We only need the projection matrix as modelview will always be idenity.\n"
+	"	// We only need the projection matrix as modelview will always be identity.\n"
 	"	gl_Position = gl_ProjectionMatrix * vertex;\n"
 	"	gl_FrontColor = gl_BackColor = gl_Color;\n"
 	"	gl_TexCoord[0] = gl_MultiTexCoord0;\n"
@@ -201,10 +201,7 @@ void OpenGLRenderer::reinit() {
 		}
 	}
 	
-	if(!GLEW_ARB_vertex_array_bgra) {
-		LogWarning << "Missing OpenGL extension ARB_vertex_array_bgra, not using vertex arrays!";
-	}
-	useVertexArrays = GLEW_ARB_vertex_array_bgra == GL_TRUE;
+	useVertexArrays = true;
 	
 	if(!GLEW_ARB_draw_elements_base_vertex) {
 		LogWarning << "Missing OpenGL extension ARB_draw_elements_base_vertex!";

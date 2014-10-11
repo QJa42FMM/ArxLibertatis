@@ -53,13 +53,8 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 
 static const float C_MIN_F32 = 1.175494351e-38F;
 inline bool C_NEQUAL_F32(float f1, float f2) {
-	return fabs(f1 - f2) >= C_MIN_F32;
+	return glm::abs(f1 - f2) >= C_MIN_F32;
 }
-
-using std::malloc;
-using std::realloc;
-using std::memcpy;
-using std::memmove;
 
 CinematicTrack	* CKTrack;
 
@@ -68,7 +63,7 @@ bool AllocTrack(int sf, int ef, float fps)
 	if(CKTrack)
 		return false;
 
-	CKTrack = (CinematicTrack *)malloc(sizeof(CinematicTrack));
+	CKTrack = (CinematicTrack *)std::malloc(sizeof(CinematicTrack));
 
 	if(!CKTrack)
 		return false;
@@ -112,7 +107,7 @@ static C_KEY * SearchAndMoveKey(int f)
 	nb = CKTrack->nbkey - nb;
 
 	if(nb) {
-		memmove((void *)(k + 2), (void *)(k + 1), sizeof(C_KEY)*nb);
+		std::memmove((void *)(k + 2), (void *)(k + 1), sizeof(C_KEY)*nb);
 	}
 
 	return k + 1;
@@ -247,9 +242,9 @@ bool AddKey(const C_KEY & key) {
 	C_KEY * k = SearchKey(key.frame, &num);
 	if(!k) {
 		if(!CKTrack->nbkey) {
-			CKTrack->key = k = (C_KEY *)malloc(sizeof(C_KEY));
+			CKTrack->key = k = (C_KEY *)std::malloc(sizeof(C_KEY));
 		} else {
-			CKTrack->key = (C_KEY *)realloc(CKTrack->key, sizeof(C_KEY) * (CKTrack->nbkey + 1));
+			CKTrack->key = (C_KEY *)std::realloc(CKTrack->key, sizeof(C_KEY) * (CKTrack->nbkey + 1));
 			k = SearchAndMoveKey(key.frame);
 		}
 
@@ -319,9 +314,9 @@ bool AddKeyLoad(const C_KEY & key) {
 	C_KEY * k = SearchKey(key.frame, &num);
 	if(!k) {
 		if(!CKTrack->nbkey) {
-			CKTrack->key = k = (C_KEY *)malloc(sizeof(C_KEY));
+			CKTrack->key = k = (C_KEY *)std::malloc(sizeof(C_KEY));
 		} else {
-			CKTrack->key = (C_KEY *)realloc(CKTrack->key, sizeof(C_KEY) * (CKTrack->nbkey + 1));
+			CKTrack->key = (C_KEY *)std::realloc(CKTrack->key, sizeof(C_KEY) * (CKTrack->nbkey + 1));
 			k = SearchAndMoveKey(key.frame);
 		}
 
@@ -358,7 +353,7 @@ float GetAngleInterpolation(float d, float e)
 {
 	float da = e - d;
 
-	if(fabs(da) > 180.f) {
+	if(glm::abs(da) > 180.f) {
 		if(da > 0.f)
 			da -= 360.f;
 		else

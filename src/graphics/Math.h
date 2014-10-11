@@ -56,9 +56,6 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 
 #include <glm/gtx/norm.hpp>
 
-using std::min;
-using std::max;
-
 #include "graphics/GraphicsTypes.h"
 #include "graphics/data/Mesh.h"
 
@@ -77,9 +74,6 @@ inline Vec3f randomVec(float min = 0.f, float max = 1.f) {
 	float range = max - min;
 	return Vec3f(rnd() * range + min, rnd() * range + min, rnd() * range + min);
 }
-
-//Approximative Methods
-#define EEfabs(val) (float)fabs(val)
 
 inline bool In3DBBoxTolerance(const Vec3f & pos, const EERIE_3D_BBOX & bbox, const float tolerance) {
 	return ((pos.x >= bbox.min.x - tolerance)
@@ -218,11 +212,11 @@ inline bool PointInCylinder(const Cylinder & cyl, const Vec3f * pt) {
 	
 	float pos1 = cyl.origin.y + cyl.height;
 	
-	if(pt->y < min(cyl.origin.y, pos1)) {
+	if(pt->y < std::min(cyl.origin.y, pos1)) {
 		return false;
 	}
 	
-	if(pt->y > max(cyl.origin.y, pos1)) {
+	if(pt->y > std::max(cyl.origin.y, pos1)) {
 		return false;
 	}
 	
@@ -237,12 +231,12 @@ inline long PointInUnderCylinder(const Cylinder & cyl, const Vec3f * pt) {
 	
 	float pos1 = cyl.origin.y + cyl.height;
 	
-	if(pt->y < min(cyl.origin.y, pos1)) {
+	if(pt->y < std::min(cyl.origin.y, pos1)) {
 		return 0;
 	}
 	
 	if(!fartherThan(Vec2f(cyl.origin.x, cyl.origin.z), Vec2f(pt->x, pt->z), cyl.radius)) {
-		return (pt->y > max(cyl.origin.y, pos1)) ? 1 : 2;
+		return (pt->y > std::max(cyl.origin.y, pos1)) ? 1 : 2;
 	}
 	
 	return 0;

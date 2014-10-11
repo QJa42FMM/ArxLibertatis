@@ -114,10 +114,10 @@ void CBless::Render()
 	mat.setLayer(RenderMaterial::Decal);
 	mat.setTexture(tex_sol);
 	
-	float fBetaRadCos = (float) cos(radians(MAKEANGLE(m_yaw))) * m_scale;
-	float fBetaRadSin = (float) sin(radians(MAKEANGLE(m_yaw))) * m_scale;
+	float fBetaRadCos = glm::cos(glm::radians(MAKEANGLE(m_yaw))) * m_scale;
+	float fBetaRadSin = glm::sin(glm::radians(MAKEANGLE(m_yaw))) * m_scale;
 
-	ColorBGRA color = Color::white.toBGR();
+	ColorRGBA color = Color::white.toRGB();
 	
 	{
 	TexturedQuad q;

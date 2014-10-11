@@ -52,10 +52,6 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 #include "graphics/data/TextureContainer.h"
 #include "graphics/data/Mesh.h"
 
-using std::min;
-using std::max;
-
-
 extern TextureContainer * enviro;
 
 CircularVertexBuffer<TexturedVertex> * pDynamicVertexBuffer_TLVERTEX;
@@ -82,10 +78,13 @@ bool EERIECreateSprite(TexturedQuad& sprite, const Vec3f & in, float siz, Color 
 	EE_RTP(in, &out);
 	out.rhw *= 3000.f;
 
-	if ((out.p.z>0.f) && (out.p.z<1000.f)
-		&& (out.p.x>-1000) && (out.p.x<2500.f)
-		&& (out.p.y>-500) && (out.p.y<1800.f))
-	{
+	if(   out.p.z > 0.f
+	   && out.p.z < 1000.f
+	   && out.p.x > -1000.f
+	   && out.p.x < 2500.f
+	   && out.p.y > -500.f
+	   && out.p.y < 1800.f
+	) {
 		float use_focal=BASICFOCAL*g_sizeRatio.x;
 		float t;
 
@@ -105,7 +104,7 @@ bool EERIECreateSprite(TexturedQuad& sprite, const Vec3f & in, float siz, Color 
 			out.rhw *= (1.f/3000.f);
 		}		
 		
-		ColorBGRA col = color.toBGRA();
+		ColorRGBA col = color.toRGBA();
 		
 		sprite.v[0] = TexturedVertex(Vec3f(), out.rhw, col, Vec2f_ZERO);
 		sprite.v[1] = TexturedVertex(Vec3f(), out.rhw, col, Vec2f_X_AXIS);
@@ -122,7 +121,7 @@ bool EERIECreateSprite(TexturedQuad& sprite, const Vec3f & in, float siz, Color 
 			sprite.v[3].p = Vec3f(mins.x, maxs.y, out.p.z);
 		} else {
 			for(long i=0;i<4;i++) {
-				float tt = radians(MAKEANGLE(rot+90.f*i+45+90));
+				float tt = glm::radians(MAKEANGLE(rot+90.f*i+45+90));
 				sprite.v[i].p.x = std::sin(tt) * t + out.p.x;
 				sprite.v[i].p.y = std::cos(tt) * t + out.p.y;
 				sprite.v[i].p.z = out.p.z;
@@ -162,7 +161,7 @@ void CreateBitmap(TexturedQuad& s, Rectf rect, float z, TextureContainer * tex, 
 	rect.move(-.5f, -.5f);
 	
 	Vec2f uv = (tex) ? tex->uv : Vec2f_ZERO;
-	ColorBGRA col = color.toBGRA();
+	ColorRGBA col = color.toRGBA();
 	float val = 1.f;
 
 	if(isRhw) {
@@ -191,9 +190,9 @@ void DrawBitmap(const Rectf & rect, float z, TextureContainer * tex, Color color
 	EERIEDRAWPRIM(Renderer::TriangleFan, s.v, 4);
 }
 
-void EERIEAddBitmap(const RenderMaterial & mat, float x, float y, float sx, float sy, float z, TextureContainer * tex, Color color) {
+void EERIEAddBitmap(const RenderMaterial & mat, const Vec3f & p, float sx, float sy, TextureContainer * tex, Color color) {
 	TexturedQuad s;
-	CreateBitmap(s, Rectf(Vec2f(x, y), sx, sy), z, tex, color, false);
+	CreateBitmap(s, Rectf(Vec2f(p.x, p.y), sx, sy), p.z, tex, color, false);
 	RenderBatcher::getInstance().add(mat, s);
 }
 
@@ -213,7 +212,7 @@ void EERIEDrawBitmap_uv(Rectf rect, float z, TextureContainer * tex,
 	Vec2f uv = (tex) ? tex->uv : Vec2f_ONE;
 	u0 *= uv.x, u1 *= uv.x, v0 *= uv.y, v1 *= uv.y;
 
-	ColorBGRA col = color.toBGRA();
+	ColorRGBA col = color.toRGBA();
 	TexturedVertex v[4];
 	v[0] = TexturedVertex(Vec3f(rect.topLeft(),     z), 1.f, col, Vec2f(u0, v0));
 	v[1] = TexturedVertex(Vec3f(rect.topRight(),    z), 1.f, col, Vec2f(u1, v0));
@@ -228,7 +227,7 @@ void EERIEDrawBitmapUVs(float x, float y, float sx, float sy, float z, TextureCo
 	
 	MatchPixTex(x, y);
 	
-	ColorBGRA col = color.toBGRA();
+	ColorRGBA col = color.toRGBA();
 	TexturedVertex v[4];
 	v[0] = TexturedVertex(Vec3f(x,      y,      z), 1.f, col, Vec2f(u0, v0));
 	v[1] = TexturedVertex(Vec3f(x + sx, y,      z), 1.f, col, Vec2f(u1, v1));
@@ -243,7 +242,7 @@ void EERIEDrawBitmap2DecalY(float x, float y, float sx, float sy, float z, Textu
 	MatchPixTex(x, y);	
 	Vec2f uv = (tex) ? tex->uv : Vec2f_ZERO;
 	float sv = uv.y * _fDeltaY;	
-	ColorBGRA col = color.toBGRA();
+	ColorRGBA col = color.toRGBA();
 	TexturedVertex v[4];
 	float fDy = _fDeltaY * sy;	
 

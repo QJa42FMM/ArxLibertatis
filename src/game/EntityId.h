@@ -27,22 +27,28 @@
 
 typedef s32 EntityInstance;
 
+namespace res { class path; }
+
 /*!
  * An ID that can be used to identify \class Entity instances
  */
 struct EntityId {
 	
-	EntityId() : instance_(-1) { }
+	EntityId() : m_instance(-1) { }
 	
 	EntityId(const std::string & className, EntityInstance instance)
-		: className_(className), instance_(instance) { }
+		: m_className(className), m_instance(instance) { }
+	EntityId(const char * className, EntityInstance instance)
+		: m_className(className), m_instance(instance) { }
+	
+	EntityId(const res::path & classPath, EntityInstance instance);
 	
 	/*!
 	 * Construct an entity id by parsing an id string as used in save files
 	 * and scripts.
 	 *
 	 * Valid ID strings are "", "none", "me", "self", "player" as well
-	 * as "className_xxxx" where className is any string and xxx is a 4-digit
+	 * as "m_classNamexxxx" where className is any string and xxx is a 4-digit
 	 * instance number (padded with leading zeros).
 	 *
 	 * "" and "none" are interpreted as an <i>invalid</i> id ad will result
@@ -56,8 +62,8 @@ struct EntityId {
 	 */
 	explicit EntityId(const std::string & idString);
 	
-	const std::string & className() const { return className_; }
-	EntityInstance instance() const { return instance_; }
+	const std::string & className() const { return m_className; }
+	EntityInstance instance() const { return m_instance; }
 	
 private:
 	
@@ -65,26 +71,29 @@ private:
 	
 public:
 	
-	//! \return true if this id is valid
-	operator unspecified_bool() {
-		return unspecified_bool(instance_ >= 0);
+	/*!
+	 * \return true if this id is valid
+	 * \note Currently the player Entity always has instance -1 and is thus considered invalid by this function.
+	 */
+	operator unspecified_bool() const {
+		return unspecified_bool(m_instance >= 0);
 	}
 	
 	//! Static instance of the "self" id
 	static const EntityId self;
 	
 	//! \return true if this id doesn't have an instance number (self, player)
-	bool isSpecial() {
-		return instance_ == 0;
+	bool isSpecial() const {
+		return m_instance <= 0;
 	}
 	
 	//! \return a string representation of this id
-	std::string string();
+	std::string string() const;
 	
 private:
 	
-	std::string className_;
-	EntityInstance instance_;
+	std::string m_className;
+	EntityInstance m_instance;
 	
 };
 

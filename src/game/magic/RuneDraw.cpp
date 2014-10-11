@@ -38,8 +38,7 @@ struct SYMBOL_DRAW {
 	short			lasttim;
 	short			duration;
 	char			sequence[32];
-	char			cPosStartX;
-	char			cPosStartY;
+	Vec2s cPosStart;
 };
 
 Vec2s GetSymbVector(char c) {
@@ -57,45 +56,39 @@ Vec2s GetSymbVector(char c) {
 	}
 }
 
-void ReCenterSequence(const char *_pcSequence, int & _iMinX, int & _iMinY,
-                      int & _iMaxX, int & _iMaxY) {
+void ReCenterSequence(const char *_pcSequence, Vec2s & iMin, Vec2s & iMax) {
 	
-	int iSizeX=0,iSizeY=0;
-	_iMinX=_iMinY=0;
-	_iMaxX=_iMaxY=0;
+	Vec2s iSize = Vec2s(0, 0);
+	iMin = Vec2s(0, 0);
+	iMax = Vec2s(0, 0);
+	
 	int iLenght=strlen(_pcSequence);
 
 	for(int iI = 0; iI < iLenght; iI++) {
 		Vec2s es2dVector = GetSymbVector(_pcSequence[iI]);
 		es2dVector *= symbolVecScale;
-		iSizeX+=es2dVector.x;
-		iSizeY+=es2dVector.y;
-		_iMinX=std::min(_iMinX,iSizeX);
-		_iMinY=std::min(_iMinY,iSizeY);
-		_iMaxX=std::max(_iMaxX,iSizeX);
-		_iMaxY=std::max(_iMaxY,iSizeY);
+		iSize += es2dVector;
+		iMin = glm::min(iMin, iSize);
+		iMax = glm::max(iMax, iSize);
 	}
 }
 
-static long lMaxSymbolDrawSizeX;
-static long lMaxSymbolDrawSizeY;
+static Vec2s lMaxSymbolDrawSize;
 
 //-----------------------------------------------------------------------------
 // Initializes Spell engine (Called once at DANAE startup)
 void ARX_SPELLS_Init_Rects() {
-	lMaxSymbolDrawSizeX = std::numeric_limits<long>::min();
-	lMaxSymbolDrawSizeY = std::numeric_limits<long>::min();
+	lMaxSymbolDrawSize.x = std::numeric_limits<s16>::min();
+	lMaxSymbolDrawSize.y = std::numeric_limits<s16>::min();
 
 	BOOST_FOREACH(RuneInfo & info, runeInfos) {
-
-		int iMinX,iMinY,iMaxX,iMaxY;
-		long iSizeX,iSizeY;
-
-		ReCenterSequence(info.sequence.c_str(), iMinX, iMinY, iMaxX, iMaxY);
-		iSizeX=iMaxX-iMinX;
-		iSizeY=iMaxY-iMinY;
-		lMaxSymbolDrawSizeX=std::max(iSizeX, lMaxSymbolDrawSizeX);
-		lMaxSymbolDrawSizeY=std::max(iSizeY, lMaxSymbolDrawSizeY);
+		
+		Vec2s iMin;
+		Vec2s iMax;
+		ReCenterSequence(info.sequence.c_str(), iMin, iMax);
+		
+		Vec2s iSize = iMax - iMin;
+		lMaxSymbolDrawSize = glm::max(iSize, lMaxSymbolDrawSize);
 	}
 }
 
@@ -160,9 +153,9 @@ void ARX_SPELLS_UpdateSymbolDraw() {
 				EERIE_LIGHT * light = lightHandleGet(io->dynlight);
 				
 				float rr = rnd();
-				light->pos.x = io->pos.x - std::sin(radians(MAKEANGLE(io->angle.getPitch() - 45.f)))*60.f;
+				light->pos.x = io->pos.x - std::sin(glm::radians(MAKEANGLE(io->angle.getPitch() - 45.f)))*60.f;
 				light->pos.y = io->pos.y - 120.f;
-				light->pos.z = io->pos.z + std::cos(radians(MAKEANGLE(io->angle.getPitch() - 45.f)))*60.f;
+				light->pos.z = io->pos.z + std::cos(glm::radians(MAKEANGLE(io->angle.getPitch() - 45.f)))*60.f;
 				light->fallstart=140.f+(float)io->flarecount*0.333333f+rr*5.f;
 				light->fallend=220.f+(float)io->flarecount*0.5f+rr*5.f;
 				light->intensity=1.6f;
@@ -218,8 +211,8 @@ void ARX_SPELLS_UpdateSymbolDraw() {
 
 			sd->lasttim=(short)tim;
 
-			pos1.x = (short)subj.center.x - symbolVecScale.x * 2 + sd->cPosStartX * symbolVecScale.x;
-			pos1.y = (short)subj.center.y - symbolVecScale.y * 2 + sd->cPosStartY * symbolVecScale.y;
+			pos1.x = (short)subj.center.x - symbolVecScale.x * 2 + sd->cPosStart.x * symbolVecScale.x;
+			pos1.y = (short)subj.center.y - symbolVecScale.y * 2 + sd->cPosStart.y * symbolVecScale.y;
 
 			float div_ti=1.f/ti;
 
@@ -258,31 +251,20 @@ void ARX_SPELLS_UpdateSymbolDraw() {
 					newtime -= (long)ti;
 				}
 			} else {
-				int iMinX,iMinY,iMaxX,iMaxY;
-				int iSizeX,iSizeY;
-				ReCenterSequence(sd->sequence,iMinX,iMinY,iMaxX,iMaxY);
-				iSizeX=iMaxX-iMinX;
-				iSizeY=iMaxY-iMinY;
-				pos1.x = 97;
-				pos1.y = 64;
+				Vec2s iMin;
+				Vec2s iMax;
+				
+				ReCenterSequence(sd->sequence, iMin, iMax);
+				Vec2s iSize = iMax - iMin;
+				pos1 = Vec2s(97, 64);
+				
+				Vec2s lPos;
+				lPos.x = (((513>>1)-lMaxSymbolDrawSize.x)>>1);
+				lPos.y = (313-(((313*3/4)-lMaxSymbolDrawSize.y)>>1));
 
-				long lPosX	= (((513>>1)-lMaxSymbolDrawSizeX)>>1);
-				long lPosY	= (313-(((313*3/4)-lMaxSymbolDrawSizeY)>>1));
-
-				pos1.x = checked_range_cast<short>(pos1.x + lPosX);
-				pos1.y = checked_range_cast<short>(pos1.y + lPosY);
-
-				lPosX =  ((lMaxSymbolDrawSizeX-iSizeX)>>1);
-				lPosY =  ((lMaxSymbolDrawSizeY-iSizeY)>>1);
-
-				pos1.x = checked_range_cast<short>(pos1.x + lPosX);
-				pos1.y = checked_range_cast<short>(pos1.y + lPosY);
-
-				int iX = pos1.x-iMinX;
-				int iY = pos1.y-iMinY;
-
-				pos1.x = checked_range_cast<short>(iX);
-				pos1.y = checked_range_cast<short>(iY);
+				pos1 += lPos;
+				pos1 += (lMaxSymbolDrawSize - iSize) / Vec2s(2);
+				pos1 -= iMin;
 
 				for(long j = 0; j < nbcomponents; j++) {
 
@@ -291,17 +273,10 @@ void ARX_SPELLS_UpdateSymbolDraw() {
 
 					if(newtime < ti) {
 						float ratio = (float)(newtime) * div_ti;
-
-						float fX = pos1.x + (ratio*vect.x)*0.5f;
-						float fY = pos1.y + (ratio*vect.y)*0.5f;
-
-						pos1.x = checked_range_cast<short>(fX);
-						pos1.y = checked_range_cast<short>(fY);
-
-						Vec2s pos;
-						pos.x=(short)(pos1.x*g_sizeRatio.x);
-						pos.y=(short)(pos1.y*g_sizeRatio.y);
-
+						
+						pos1 += Vec2s(Vec2f(ratio) * Vec2f(vect) * 0.5f);
+						
+						Vec2s pos = Vec2s(Vec2f(pos1) * g_sizeRatio);
 						AddFlare(pos, 0.1f, 1, entities[handle], true);
 
 						break;
@@ -346,12 +321,11 @@ void ARX_SPELLS_RequestSymbolDrawCommon(Entity *io, float duration, RuneInfo & i
 
 	sd->starttime = (unsigned long)(arxtime);
 	sd->lasttim = 0;
-	sd->lastpos.x = io->pos.x - std::sin(radians(MAKEANGLE(io->angle.getPitch() - 45.0F + info.startOffset.x*2))) * 60.0F;
+	sd->lastpos.x = io->pos.x - std::sin(glm::radians(MAKEANGLE(io->angle.getPitch() - 45.0F + info.startOffset.x*2))) * 60.0F;
 	sd->lastpos.y = io->pos.y - 120.0F - info.startOffset.y*5;
-	sd->lastpos.z = io->pos.z + std::cos(radians(MAKEANGLE(io->angle.getPitch() - 45.0F + info.startOffset.x * 2))) * 60.0F;
+	sd->lastpos.z = io->pos.z + std::cos(glm::radians(MAKEANGLE(io->angle.getPitch() - 45.0F + info.startOffset.x * 2))) * 60.0F;
 
-	sd->cPosStartX = checked_range_cast<char>(info.startOffset.x);
-	sd->cPosStartY = checked_range_cast<char>(info.startOffset.y);
+	sd->cPosStart = info.startOffset;
 
 	io->gameFlags &= ~GFLAG_INVISIBILITY;
 }

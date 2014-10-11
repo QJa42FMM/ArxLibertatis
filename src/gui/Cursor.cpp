@@ -65,35 +65,34 @@ static TextureContainer * cursorTargetOff = NULL;
 static TextureContainer * cursorInteractionOn = NULL;
 static TextureContainer * cursorInteractionOff = NULL;
 static TextureContainer * cursorMagic = NULL;
-TextureContainer * ThrowObject = NULL;
-TextureContainer * ptexcursorredist = NULL;
+static TextureContainer * cursorThrowObject = NULL;
+static TextureContainer * cursorRedist = NULL;
+static TextureContainer * cursorCrossHair = NULL; // Animated Hand Cursor TC
+TextureContainer * cursorMovable = NULL;   // TextureContainer for Movable Items (Red Cross)
 
 TextureContainer *	scursor[8];			// Animated Hand Cursor TC
-TextureContainer *	pTCCrossHair;			// Animated Hand Cursor TC
-
-TextureContainer * Movable = NULL;   // TextureContainer for Movable Items (Red Cross)
 
 void cursorTexturesInit() {
 	ITC.Reset();
 	
-	cursorTargetOn = TextureContainer::LoadUI("graph/interface/cursors/target_on");
-	cursorTargetOff = TextureContainer::LoadUI("graph/interface/cursors/target_off");
-	cursorInteractionOn = TextureContainer::LoadUI("graph/interface/cursors/interaction_on");
+	cursorTargetOn       = TextureContainer::LoadUI("graph/interface/cursors/target_on");
+	cursorTargetOff      = TextureContainer::LoadUI("graph/interface/cursors/target_off");
+	cursorInteractionOn  = TextureContainer::LoadUI("graph/interface/cursors/interaction_on");
 	cursorInteractionOff = TextureContainer::LoadUI("graph/interface/cursors/interaction_off");
-	cursorMagic = TextureContainer::LoadUI("graph/interface/cursors/magic");
-	ThrowObject = TextureContainer::LoadUI("graph/interface/cursors/throw");
-	ptexcursorredist =  TextureContainer::LoadUI("graph/interface/cursors/add_points");
-	pTCCrossHair = TextureContainer::LoadUI("graph/interface/cursors/cruz");
-	Movable = TextureContainer::LoadUI("graph/interface/cursors/wrong");
+	cursorMagic          = TextureContainer::LoadUI("graph/interface/cursors/magic");
+	cursorThrowObject    = TextureContainer::LoadUI("graph/interface/cursors/throw");
+	cursorRedist         = TextureContainer::LoadUI("graph/interface/cursors/add_points");
+	cursorCrossHair      = TextureContainer::LoadUI("graph/interface/cursors/cruz");
+	cursorMovable        = TextureContainer::LoadUI("graph/interface/cursors/wrong");
 	
 	arx_assert(cursorTargetOn);
 	arx_assert(cursorTargetOff);
 	arx_assert(cursorInteractionOn);
 	arx_assert(cursorInteractionOff);
 	arx_assert(cursorMagic);
-	arx_assert(ThrowObject);
-	arx_assert(ptexcursorredist);
-	arx_assert(pTCCrossHair);
+	arx_assert(cursorThrowObject);
+	arx_assert(cursorRedist);
+	arx_assert(cursorCrossHair);
 	
 	for(long i = 0; i < 8; i++) {
 		char temp[256];
@@ -136,33 +135,30 @@ bool Manage3DCursor(bool simulate) {
 		temp.setPitch(MAKEANGLE(270.f - io->angle.getPitch() - (player.angle.getPitch() - STARTED_ANGLE)));
 	}
 	
-	float maxdist = 0.f;
-	
 	EERIE_3D_BBOX bbox;
 	for(size_t i = 0; i < io->obj->vertexlist.size(); i++) {
 		bbox.add(io->obj->vertexlist[i].v);
 	}
 	
 	Vec3f mvectx;
-	mvectx.x = -std::sin(radians(player.angle.getPitch() - 90.f));
+	mvectx.x = -std::sin(glm::radians(player.angle.getPitch() - 90.f));
 	mvectx.y = 0;
-	mvectx.z = +std::cos(radians(player.angle.getPitch() - 90.f));
+	mvectx.z = +std::cos(glm::radians(player.angle.getPitch() - 90.f));
 	mvectx = glm::normalize(mvectx);
-
-	float xmod = (float)(DANAEMouse.x-g_size.center().x) / (float)g_size.center().x*160.f;
-	float ymod = (float)(DANAEMouse.y-g_size.center().y) / (float)g_size.center().y*220.f;
-	mvectx *= xmod;
-	Vec3f mvecty(0, ymod, 0);
+	
+	Vec2f mod = Vec2f(Vec2i(DANAEMouse) - g_size.center()) / Vec2f(g_size.center()) * Vec2f(160.f, 220.f);
+	mvectx *= mod.x;
+	Vec3f mvecty(0, mod.y, 0);
 
 	Vec3f orgn;
-	orgn.x=player.pos.x- std::sin(radians(player.angle.getPitch())) * std::cos(radians(player.angle.getYaw()))*50.f + mvectx.x;
-	orgn.y=player.pos.y+ std::sin(radians(player.angle.getYaw()))*50.f + mvectx.y + mvecty.y;
-	orgn.z=player.pos.z+ std::cos(radians(player.angle.getPitch())) * std::cos(radians(player.angle.getYaw()))*50.f + mvectx.z;
+	orgn.x=player.pos.x- std::sin(glm::radians(player.angle.getPitch())) * std::cos(glm::radians(player.angle.getYaw()))*50.f + mvectx.x;
+	orgn.y=player.pos.y+ std::sin(glm::radians(player.angle.getYaw()))*50.f + mvectx.y + mvecty.y;
+	orgn.z=player.pos.z+ std::cos(glm::radians(player.angle.getPitch())) * std::cos(glm::radians(player.angle.getYaw()))*50.f + mvectx.z;
 
 	Vec3f dest;
-	dest.x=player.pos.x- std::sin(radians(player.angle.getPitch())) * std::cos(radians(player.angle.getYaw()))*10000.f + mvectx.x;
-	dest.y=player.pos.y+ std::sin(radians(player.angle.getYaw()))*10000.f + mvectx.y + mvecty.y * 5.f;
-	dest.z=player.pos.z+ std::cos(radians(player.angle.getPitch())) * std::cos(radians(player.angle.getYaw()))*10000.f + mvectx.z;
+	dest.x=player.pos.x- std::sin(glm::radians(player.angle.getPitch())) * std::cos(glm::radians(player.angle.getYaw()))*10000.f + mvectx.x;
+	dest.y=player.pos.y+ std::sin(glm::radians(player.angle.getYaw()))*10000.f + mvectx.y + mvecty.y * 5.f;
+	dest.z=player.pos.z+ std::cos(glm::radians(player.angle.getPitch())) * std::cos(glm::radians(player.angle.getYaw()))*10000.f + mvectx.z;
 	Vec3f pos = orgn;
 
 	Vec3f movev = glm::normalize(dest - orgn);
@@ -173,11 +169,14 @@ bool Manage3DCursor(bool simulate) {
 	if(height > -30.f)
 		height = -30.f;
 	
-	Vec3f objcenter = Vec3f_ZERO;
-	objcenter.x = bbox.min.x + (bbox.max.x - bbox.min.x) * 0.5f;
-	objcenter.y = 0;
-	objcenter.z = bbox.min.z + (bbox.max.z - bbox.min.z) * 0.5f;
-
+	Vec3f objcenter = bbox.min + (bbox.max - bbox.min) * Vec3f(0.5f);
+	
+	Vec3f collidpos = Vec3f_ZERO;
+	bool collidpos_ok = false;
+	
+	{
+	float maxdist = 0.f;
+	
 	for(size_t i = 0; i < io->obj->vertexlist.size(); i++) {
 		const EERIE_VERTEX & vert = io->obj->vertexlist[i];
 		
@@ -195,17 +194,14 @@ bool Manage3DCursor(bool simulate) {
 			maxdist = std::max(maxdist, dist);
 		}
 	}
-
-	objcenter = VRotateY(objcenter, temp.getPitch());
-
-	maxdist = glm::clamp(maxdist, 15.f, 150.f);
 	
-	Vec3f collidpos = Vec3f_ZERO;
 	Cylinder cyl2;
-	float inc = 10.f;
+	const float inc = 10.f;
 	long iterating = 40;
 
 	cyl2.height = std::min(-30.f, height);
+	
+	maxdist = glm::clamp(maxdist, 15.f, 150.f);
 	cyl2.radius = std::max(20.f, maxdist);
 
 
@@ -238,19 +234,24 @@ bool Manage3DCursor(bool simulate) {
 
 		iterating--;
 	}
-
+	collidpos_ok = iterating == -1;
+	
+	}
+	
+	objcenter = VRotateY(objcenter, temp.getPitch());
+	
 	collidpos.x -= objcenter.x;
 	collidpos.z -= objcenter.z;
 
 	pos.x -= objcenter.x;
 	pos.z -= objcenter.z;
 
-	if(iterating != -1) {
+	if(!collidpos_ok) {
 		CANNOT_PUT_IT_HERE = 1;
 		return false;
 	}
 
-	if(iterating == -1 && closerThan(player.pos, pos, 300.f)) {
+	if(collidpos_ok && closerThan(player.pos, pos, 300.f)) {
 		if(simulate) {
 			ARX_INTERACTIVE_Teleport(io, pos, true);
 
@@ -259,7 +260,7 @@ bool Manage3DCursor(bool simulate) {
 			glm::quat rotation = glm::toQuat(toRotationMatrix(temp));
 			
 			if(SPECIAL_DRAGINTER_RENDER) {
-			if(EEfabs(lastanything) > EEfabs(height)) {
+			if(glm::abs(lastanything) > glm::abs(height)) {
 				TransformInfo t(collidpos, rotation, io->scale);
 
 				static const float invisibility = 0.5f;
@@ -274,7 +275,7 @@ bool Manage3DCursor(bool simulate) {
 			}
 			}
 		} else {
-			if(EEfabs(lastanything) > std::min(EEfabs(height), 12.0f)) {
+			if(glm::abs(lastanything) > std::min(glm::abs(height), 12.0f)) {
 				Entity * io = DRAGINTER;
 				ARX_PLAYER_Remove_Invisibility();
 				io->obj->pbox->active = 1;
@@ -437,273 +438,277 @@ void ARX_INTERFACE_RenderCursorInternal(bool flag) {
 		return;
 	}
 	
-	if(flag || (!BLOCK_PLAYER_CONTROLS && PLAYER_INTERFACE_HIDE_COUNT)) {
-		if(!SPECIAL_DRAGINTER_RENDER)
-			GRenderer->SetCulling(Renderer::CullNone);
-
-		if(COMBINE || COMBINEGOLD) {
-			if(SpecialCursor == CURSOR_INTERACTION_ON)
-				SpecialCursor = CURSOR_COMBINEON;
-			else
-				SpecialCursor = CURSOR_COMBINEOFF;
+	if(!(flag || (!BLOCK_PLAYER_CONTROLS && PLAYER_INTERFACE_HIDE_COUNT))) {
+		return;
+	}
+		
+	if(!SPECIAL_DRAGINTER_RENDER)
+		GRenderer->SetCulling(Renderer::CullNone);
+	
+	if(COMBINE || COMBINEGOLD) {
+		if(SpecialCursor == CURSOR_INTERACTION_ON)
+			SpecialCursor = CURSOR_COMBINEON;
+		else
+			SpecialCursor = CURSOR_COMBINEOFF;
+	}
+	
+	if(!SPECIAL_DRAGINTER_RENDER) {
+		if(FlyingOverIO || DRAGINTER) {
+			fHighLightAng += (float)(framedelay*0.5);
+			
+			if(fHighLightAng > 90.f)
+				fHighLightAng = 90.f;
+			
+			float fHLight = 100.f * glm::sin(glm::radians(fHighLightAng));
+			
+			iHighLight = checked_range_cast<int>(fHLight);
+		} else {
+			fHighLightAng = 0.f;
+			iHighLight = 0;
 		}
-
-		if(!SPECIAL_DRAGINTER_RENDER) {
-			if(FlyingOverIO || DRAGINTER) {
-				fHighLightAng += (float)(framedelay*0.5);
-
-				if(fHighLightAng > 90.f)
-					fHighLightAng = 90.f;
-
-				float fHLight = 100.f * sin(radians(fHighLightAng));
-
-				iHighLight = checked_range_cast<int>(fHLight);
-			} else {
-				fHighLightAng = 0.f;
-				iHighLight = 0;
-			}
-		}
-
-		if(   SpecialCursor
-		   || !PLAYER_MOUSELOOK_ON
-		   || DRAGINTER
-		   ||  (FlyingOverIO
-		     && PLAYER_MOUSELOOK_ON
-		     && !g_cursorOverBook
-		     && (eMouseState != MOUSE_IN_NOTE)
-		     && (FlyingOverIO->ioflags & IO_ITEM)
-		     && (FlyingOverIO->gameFlags & GFLAG_INTERACTIVITY)
-		     && (config.input.autoReadyWeapon == false))
-		   || (MAGICMODE && PLAYER_MOUSELOOK_ON)
+	}
+	
+	if(   SpecialCursor
+	   || !PLAYER_MOUSELOOK_ON
+	   || DRAGINTER
+	   ||  (FlyingOverIO
+		 && PLAYER_MOUSELOOK_ON
+		 && !g_cursorOverBook
+		 && (eMouseState != MOUSE_IN_NOTE)
+		 && (FlyingOverIO->ioflags & IO_ITEM)
+		 && (FlyingOverIO->gameFlags & GFLAG_INTERACTIVITY)
+		 && (config.input.autoReadyWeapon == false))
+	   || (MAGICMODE && PLAYER_MOUSELOOK_ON)
+	) {
+		CANNOT_PUT_IT_HERE=0;
+		float ag=player.angle.getYaw();
+		
+		if(ag > 180)
+			ag = ag - 360;
+		
+		float drop_miny=(float)(g_size.center().y)-g_size.center().y*(ag*( 1.0f / 70 ));
+		
+		if(   DANAEMouse.y > drop_miny
+		   && DRAGINTER
+		   && !InInventoryPos(DANAEMouse)
+		   && !g_cursorOverBook
 		) {
-			CANNOT_PUT_IT_HERE=0;
-			float ag=player.angle.getYaw();
-
-			if(ag > 180)
-				ag = ag - 360;
-
-			float drop_miny=(float)(g_size.center().y)-g_size.center().y*(ag*( 1.0f / 70 ));
-
-			if(   DANAEMouse.y > drop_miny
-			   && DRAGINTER
-			   && !InInventoryPos(DANAEMouse)
-			   && !g_cursorOverBook
-			) {
-				if(!Manage3DCursor(true))
-					CANNOT_PUT_IT_HERE = -1;
-
-				if(SPECIAL_DRAGINTER_RENDER) {
-					CANNOT_PUT_IT_HERE=0;
-					return;
-				}
-			} else {
+			if(!Manage3DCursor(true))
 				CANNOT_PUT_IT_HERE = -1;
-			}
-
-			if(SPECIAL_DRAGINTER_RENDER)
+			
+			if(SPECIAL_DRAGINTER_RENDER) {
+				CANNOT_PUT_IT_HERE=0;
 				return;
-
-			Vec2f mousePos = Vec2f(DANAEMouse);
-
-			if(SpecialCursor && !DRAGINTER) {
-				if((COMBINE && COMBINE->inv) || COMBINEGOLD) {
-					if(TRUE_PLAYER_MOUSELOOK_ON && (config.input.autoReadyWeapon)) {
-						mousePos = MemoMouse;
-					}
-
-					TextureContainer * tc;
-
-					if(COMBINEGOLD)
-						tc = GoldCoinsTC[5];
-					else
-						tc = COMBINE->inv;
+			}
+		} else {
+			CANNOT_PUT_IT_HERE = -1;
+		}
+		
+		if(SPECIAL_DRAGINTER_RENDER)
+			return;
+		
+		Vec2f mousePos = Vec2f(DANAEMouse);
+		
+		if(SpecialCursor && !DRAGINTER) {
+			if((COMBINE && COMBINE->inv) || COMBINEGOLD) {
+				if(TRUE_PLAYER_MOUSELOOK_ON && (config.input.autoReadyWeapon)) {
+					mousePos = MemoMouse;
+				}
+				
+				TextureContainer * tc;
+				
+				if(COMBINEGOLD)
+					tc = GoldCoinsTC[5];
+				else
+					tc = COMBINE->inv;
+				
+				Vec2f size(tc->m_dwWidth, tc->m_dwHeight);
+				
+				if(SpecialCursor == CURSOR_COMBINEON) {
+					EERIEDrawBitmap(Rectf(mousePos, size.x, size.y), .00001f, tc, Color::white);
 					
-					Vec2f size(tc->m_dwWidth, tc->m_dwHeight);
-
-					if(SpecialCursor == CURSOR_COMBINEON) {
-						EERIEDrawBitmap(Rectf(mousePos, size.x, size.y), .00001f, tc, Color::white);
-
-						if(FlyingOverIO && (FlyingOverIO->ioflags & IO_BLACKSMITH)) {
-							float v=ARX_DAMAGES_ComputeRepairPrice(COMBINE,FlyingOverIO);
-
-							if(v > 0.f) {
-								long t = v;
-								Vec2f nuberOffset = Vec2f(-16, -10);
-								ARX_INTERFACE_DrawNumber(mousePos + nuberOffset, t, 6, Color::cyan);
-							}
+					if(FlyingOverIO && (FlyingOverIO->ioflags & IO_BLACKSMITH)) {
+						float v=ARX_DAMAGES_ComputeRepairPrice(COMBINE,FlyingOverIO);
+						
+						if(v > 0.f) {
+							long t = v;
+							Vec2f nuberOffset = Vec2f(-16, -10);
+							ARX_INTERFACE_DrawNumber(mousePos + nuberOffset, t, 6, Color::cyan);
 						}
-					} else {
-						EERIEDrawBitmap(Rectf(mousePos, size.x, size.y), 0.00001f, tc, Color::fromBGRA(0xFFFFAA66));
 					}
+				} else {
+					EERIEDrawBitmap(Rectf(mousePos, size.x, size.y), 0.00001f, tc, Color(255, 170, 102, 255));
 				}
-				
-				TextureContainer * surf;
-				
-				switch(SpecialCursor) {
-				case CURSOR_REDIST:
-					surf = ptexcursorredist;
-					break;
-				case CURSOR_COMBINEOFF:
-					surf = cursorTargetOff;
-					mousePos.x -= 16.f;
-					mousePos.y -= 16.f;
-					break;
-				case CURSOR_COMBINEON:
-					surf = cursorTargetOn;
-					arx_assert(surf);
-					
-					mousePos.x -= 16.f;
-					mousePos.y -= 16.f;
-					break;
-				case CURSOR_FIREBALLAIM: {
-					surf = cursorTargetOn;
-					arx_assert(surf);
-					
-					Vec2i size = Vec2i(surf->m_dwWidth, surf->m_dwHeight);
-					
-					mousePos.x = 320.f - size.x / 2.f;
-					mousePos.y = 280.f - size.y / 2.f;
-					break;
-				}
-				case CURSOR_INTERACTION_ON:
-					cursorAnimatedHand.update1();
-					surf = cursorAnimatedHand.getCurrentTexture();
-					break;
-				default:
-					cursorAnimatedHand.update2();
-					surf = cursorAnimatedHand.getCurrentTexture();
-					break;
-				}
-				
+			}
+			
+			TextureContainer * surf;
+			
+			switch(SpecialCursor) {
+			case CURSOR_REDIST:
+				surf = cursorRedist;
+				break;
+			case CURSOR_COMBINEOFF:
+				surf = cursorTargetOff;
+				mousePos.x -= 16.f;
+				mousePos.y -= 16.f;
+				break;
+			case CURSOR_COMBINEON:
+				surf = cursorTargetOn;
 				arx_assert(surf);
 				
-				if(SpecialCursor == CURSOR_REDIST) {
-					EERIEDrawBitmap(Rectf(mousePos, surf->m_dwWidth * g_sizeRatio.x, surf->m_dwHeight * g_sizeRatio.y),
-									0.f, surf, Color::white);
-					
-					Vec2f textPos = Vec2f(DANAEMouse);
-					textPos += Vec2f(6, 11) * g_sizeRatio;
-					
-					std::stringstream ss;
-					ss << std::setw(3) << lCursorRedistValue;
-					ARX_TEXT_Draw(hFontInBook, textPos, ss.str(), Color::black);
-				} else {
-					
-					EERIEDrawBitmap(Rectf(mousePos, surf->m_dwWidth, surf->m_dwHeight), 0.f, surf, Color::white);
+				mousePos.x -= 16.f;
+				mousePos.y -= 16.f;
+				break;
+			case CURSOR_FIREBALLAIM: {
+				surf = cursorTargetOn;
+				arx_assert(surf);
+				
+				Vec2i size = Vec2i(surf->m_dwWidth, surf->m_dwHeight);
+				
+				mousePos.x = 320.f - size.x / 2.f;
+				mousePos.y = 280.f - size.y / 2.f;
+				break;
+			}
+			case CURSOR_INTERACTION_ON:
+				cursorAnimatedHand.update1();
+				surf = cursorAnimatedHand.getCurrentTexture();
+				break;
+			default:
+				cursorAnimatedHand.update2();
+				surf = cursorAnimatedHand.getCurrentTexture();
+				break;
+			}
+			
+			arx_assert(surf);
+			
+			if(SpecialCursor == CURSOR_REDIST) {
+				EERIEDrawBitmap(Rectf(mousePos, surf->m_dwWidth * g_sizeRatio.x, surf->m_dwHeight * g_sizeRatio.y),
+								0.f, surf, Color::white);
+				
+				Vec2f textPos = Vec2f(DANAEMouse);
+				textPos += Vec2f(6, 11) * g_sizeRatio;
+				
+				std::stringstream ss;
+				ss << std::setw(3) << lCursorRedistValue;
+				ARX_TEXT_Draw(hFontInBook, textPos, ss.str(), Color::black);
+			} else {
+				
+				EERIEDrawBitmap(Rectf(mousePos, surf->m_dwWidth, surf->m_dwHeight), 0.f, surf, Color::white);
+			}
+			
+			SpecialCursor = 0;
+		} else {
+			if(   !(player.Current_Movement & PLAYER_CROUCH)
+			   && !BLOCK_PLAYER_CONTROLS
+			   && GInput->actionPressed(CONTROLS_CUST_MAGICMODE)
+			   && ARXmenu.currentmode == AMCM_OFF
+			) {
+				if(!MAGICMODE) {
+					if(player.Interface & INTER_MAP) {
+						ARX_INTERFACE_BookOpenClose(2); // Forced Closing
+					}
+					MAGICMODE = true;
 				}
 				
-				SpecialCursor = 0;
+				TextureContainer * surf = cursorMagic;
+				
+				Vec2f pos = Vec2f(DANAEMouse);
+				
+				if(TRUE_PLAYER_MOUSELOOK_ON) {
+					pos = MemoMouse;
+				}
+				
+				Vec2f size(surf->m_dwWidth, surf->m_dwHeight);
+				
+				pos += -size * 0.5f;
+				
+				EERIEDrawBitmap(Rectf(pos, size.x, size.y), 0.f, surf, Color::white);
 			} else {
-				if(   !(player.Current_Movement & PLAYER_CROUCH)
-				   && !BLOCK_PLAYER_CONTROLS
-				   && GInput->actionPressed(CONTROLS_CUST_MAGICMODE)
-				   && ARXmenu.currentmode == AMCM_OFF
-				) {
-					if(!MAGICMODE) {
-						if(player.Interface & INTER_MAP) {
-							ARX_INTERFACE_BookOpenClose(2); // Forced Closing
-						}
-						MAGICMODE = true;
-					}
-
-					TextureContainer * surf = cursorMagic;
-
-					Vec2f pos = Vec2f(DANAEMouse);
+				if(MAGICMODE) {
+					ARX_SOUND_Stop(SND_MAGIC_DRAW);
+					MAGICMODE = false;
+				}
+				
+				if(DRAGINTER && DRAGINTER->inv) {
+					TextureContainer * tc = DRAGINTER->inv;
+					TextureContainer * haloTc = NULL;
 					
-					if(TRUE_PLAYER_MOUSELOOK_ON) {
+					if(NeedHalo(DRAGINTER))
+						haloTc = DRAGINTER->inv->getHalo();//>_itemdata->halo_tc;
+					
+					Color color = (DRAGINTER->poisonous && DRAGINTER->poisonous_count != 0) ? Color::green : Color::white;
+					
+					Vec2f pos = mousePos;
+					
+					if(TRUE_PLAYER_MOUSELOOK_ON && config.input.autoReadyWeapon) {
 						pos = MemoMouse;
 					}
 					
-					Vec2f size(surf->m_dwWidth, surf->m_dwHeight);
+					Rectf rect(pos, tc->m_dwWidth, tc->m_dwHeight);
 					
-					pos += -size * 0.5f;
-					
-					EERIEDrawBitmap(Rectf(pos, size.x, size.y), 0.f, surf, Color::white);
-				} else {
-					if(MAGICMODE) {
-						ARX_SOUND_Stop(SND_MAGIC_DRAW);
-						MAGICMODE = false;
-					}
-
-					if(DRAGINTER && DRAGINTER->inv) {
-						TextureContainer * tc = DRAGINTER->inv;
-						TextureContainer * tc2 = NULL;
+					if(!(DRAGINTER->ioflags & IO_MOVABLE)) {
+						EERIEDrawBitmap(rect, .00001f, tc, color);
 						
-						if(NeedHalo(DRAGINTER))
-							tc2 = DRAGINTER->inv->getHalo();//>_itemdata->halo_tc;
-
-						Color color = (DRAGINTER->poisonous && DRAGINTER->poisonous_count != 0) ? Color::green : Color::white;
-
-						Vec2f pos = mousePos;
-						
-						if(TRUE_PLAYER_MOUSELOOK_ON && config.input.autoReadyWeapon) {
-							pos = MemoMouse;
-						}
-						
-						Rectf rect(pos, tc->m_dwWidth, tc->m_dwHeight);
-
-						if(!(DRAGINTER->ioflags & IO_MOVABLE)) {
-							EERIEDrawBitmap(rect, .00001f, tc, color);
-
-							if((DRAGINTER->ioflags & IO_ITEM) && DRAGINTER->_itemdata->count != 1) {
-								Vec2f nuberOffset = Vec2f(2.f, 13.f);
-								ARX_INTERFACE_DrawNumber(pos + nuberOffset, DRAGINTER->_itemdata->count, 3, Color::white);
-							}
-						} else {
-							if((InInventoryPos(DANAEMouse) || InSecondaryInventoryPos(DANAEMouse)) || CANNOT_PUT_IT_HERE != -1) {
-								EERIEDrawBitmap(rect, .00001f, tc, color);
-							}
-						}
-
-						//cross not over inventory icon
-						if(CANNOT_PUT_IT_HERE && (eMouseState != MOUSE_IN_INVENTORY_ICON)) {
-							if(!InInventoryPos(DANAEMouse) && !InSecondaryInventoryPos(DANAEMouse) && !ARX_INTERFACE_MouseInBook()) {
-								TextureContainer * tcc = Movable;
-
-								if(CANNOT_PUT_IT_HERE == -1)
-									tcc = ThrowObject;
-
-								if(tcc && tcc != tc) // to avoid movable double red cross...
-									EERIEDrawBitmap(Rectf(Vec2f(pos.x + 16, pos.y), tcc->m_dwWidth, tcc->m_dwHeight), 0.00001f, tcc, Color::white);
-							}
-						}
-
-						if(tc2) {
-							ARX_INTERFACE_HALO_Draw(DRAGINTER, tc, tc2, pos.x, pos.y, 1.f, 1.f);
+						if((DRAGINTER->ioflags & IO_ITEM) && DRAGINTER->_itemdata->count != 1) {
+							Vec2f nuberOffset = Vec2f(2.f, 13.f);
+							ARX_INTERFACE_DrawNumber(pos + nuberOffset, DRAGINTER->_itemdata->count, 3, Color::white);
 						}
 					} else {
-						cursorAnimatedHand.update2();
-						TextureContainer * surf = cursorAnimatedHand.getCurrentTexture();
-
-						if(surf) {
-							EERIEDrawBitmap(Rectf(mousePos, surf->m_dwWidth, surf->m_dwHeight), 0.f, surf, Color::white);
+						if((InInventoryPos(DANAEMouse) || InSecondaryInventoryPos(DANAEMouse)) || CANNOT_PUT_IT_HERE != -1) {
+							EERIEDrawBitmap(rect, .00001f, tc, color);
 						}
+					}
+					
+					//cross not over inventory icon
+					if(   CANNOT_PUT_IT_HERE
+					   && (eMouseState != MOUSE_IN_INVENTORY_ICON)
+					   && !InInventoryPos(DANAEMouse)
+					   && !InSecondaryInventoryPos(DANAEMouse)
+					   && !ARX_INTERFACE_MouseInBook()) {
+						TextureContainer * tcc = cursorMovable;
+						
+						if(CANNOT_PUT_IT_HERE == -1)
+							tcc = cursorThrowObject;
+						
+						if(tcc && tcc != tc) // to avoid movable double red cross...
+							EERIEDrawBitmap(Rectf(Vec2f(pos.x + 16, pos.y), tcc->m_dwWidth, tcc->m_dwHeight), 0.00001f, tcc, Color::white);
+					}
+					
+					if(haloTc) {
+						ARX_INTERFACE_HALO_Draw(DRAGINTER, tc, haloTc, pos.x, pos.y, 1.f, 1.f);
+					}
+				} else {
+					cursorAnimatedHand.update2();
+					TextureContainer * surf = cursorAnimatedHand.getCurrentTexture();
+					
+					if(surf) {
+						EERIEDrawBitmap(Rectf(mousePos, surf->m_dwWidth, surf->m_dwHeight), 0.f, surf, Color::white);
 					}
 				}
 			}
-		} else { //mode system shock
-			if(SPECIAL_DRAGINTER_RENDER)
-				return;
-
-			if(TRUE_PLAYER_MOUSELOOK_ON && config.video.showCrosshair) {
-				if(!(player.Interface & (INTER_COMBATMODE | INTER_NOTE | INTER_MAP))) {
-					
-					cursorAnimatedHand.reset();
-					
-					TextureContainer * surf = pTCCrossHair;
-					arx_assert(surf);
-					
-					GRenderer->SetRenderState(Renderer::AlphaBlending, true);
-					GRenderer->SetBlendFunc(Renderer::BlendOne, Renderer::BlendOne);
-					
-					float POSX = g_size.center().x - surf->m_dwWidth * .5f;
-					float POSY = g_size.center().y - surf->m_dwHeight * .5f;
-					
-					EERIEDrawBitmap(Rectf(Vec2f(POSX, POSY), surf->m_dwWidth, surf->m_dwHeight), 0.f, surf, Color3f::gray(.5f).to<u8>());
-					
-					GRenderer->SetRenderState(Renderer::AlphaBlending, false);
-				}
-			}
+		}
+	} else { //mode system shock
+		if(SPECIAL_DRAGINTER_RENDER)
+			return;
+		
+		if(   TRUE_PLAYER_MOUSELOOK_ON
+		   && config.video.showCrosshair
+		   && !(player.Interface & (INTER_COMBATMODE | INTER_NOTE | INTER_MAP))) {
+			
+			cursorAnimatedHand.reset();
+			
+			TextureContainer * surf = cursorCrossHair;
+			arx_assert(surf);
+			
+			GRenderer->SetRenderState(Renderer::AlphaBlending, true);
+			GRenderer->SetBlendFunc(Renderer::BlendOne, Renderer::BlendOne);
+			
+			float POSX = g_size.center().x - surf->m_dwWidth * .5f;
+			float POSY = g_size.center().y - surf->m_dwHeight * .5f;
+			
+			EERIEDrawBitmap(Rectf(Vec2f(POSX, POSY), surf->m_dwWidth, surf->m_dwHeight), 0.f, surf, Color3f::gray(.5f).to<u8>());
+			
+			GRenderer->SetRenderState(Renderer::AlphaBlending, false);
 		}
 	}
 }

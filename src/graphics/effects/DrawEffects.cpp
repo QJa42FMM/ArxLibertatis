@@ -123,10 +123,10 @@ void ARXDRAW_DrawInterShadows()
 		}
 		
 		TexturedVertex ltv[4];
-		ltv[0] = TexturedVertex(Vec3f(0, 0, 0.001f), 1.f, 0, Vec2f(0.3f, 0.3f));
-		ltv[1] = TexturedVertex(Vec3f(0, 0, 0.001f), 1.f, 0, Vec2f(0.7f, 0.3f));
-		ltv[2] = TexturedVertex(Vec3f(0, 0, 0.001f), 1.f, 0, Vec2f(0.7f, 0.7f));
-		ltv[3] = TexturedVertex(Vec3f(0, 0, 0.001f), 1.f, 0, Vec2f(0.3f, 0.7f));
+		ltv[0] = TexturedVertex(Vec3f(0, 0, 0.001f), 1.f, ColorRGBA(0), Vec2f(0.3f, 0.3f));
+		ltv[1] = TexturedVertex(Vec3f(0, 0, 0.001f), 1.f, ColorRGBA(0), Vec2f(0.7f, 0.3f));
+		ltv[2] = TexturedVertex(Vec3f(0, 0, 0.001f), 1.f, ColorRGBA(0), Vec2f(0.7f, 0.7f));
+		ltv[3] = TexturedVertex(Vec3f(0, 0, 0.001f), 1.f, ColorRGBA(0), Vec2f(0.3f, 0.7f));
 		
 		if(io->obj->grouplist.size() <= 1) {
 			for(size_t k = 0; k < io->obj->vertexlist.size(); k += 9) {
@@ -137,7 +137,7 @@ void ARXDRAW_DrawInterShadows()
 				
 				Vec3f in;
 				in.y = ep->min.y - 3.f;
-				float r = 0.5f - ((float)EEfabs(io->obj->vertexlist3[k].v.y - in.y)) * (1.f/500);
+				float r = 0.5f - ((float)glm::abs(io->obj->vertexlist3[k].v.y - in.y)) * (1.f/500);
 				r -= io->invisibility;
 				r *= io->scale;
 				
@@ -151,7 +151,7 @@ void ARXDRAW_DrawInterShadows()
 				
 				r *= 255.f;
 				long lv = r;
-				ltv[0].color = ltv[1].color = ltv[2].color = ltv[3].color = 0xFF000000 | lv<<16 | lv<<8 | lv;
+				ltv[0].color = ltv[1].color = ltv[2].color = ltv[3].color = Color(lv, lv, lv, 255).toRGBA();
 				
 				EE_RT(in, ltv[0].p);
 				in.x += s1;
@@ -176,7 +176,7 @@ void ARXDRAW_DrawInterShadows()
 				
 				Vec3f in;
 				in.y = ep->min.y - 3.f;
-				float r = 0.8f - ((float)EEfabs(io->obj->vertexlist3[origin].v.y - in.y)) * (1.f/500);
+				float r = 0.8f - ((float)glm::abs(io->obj->vertexlist3[origin].v.y - in.y)) * (1.f/500);
 				r *= io->obj->grouplist[k].siz;
 				r -= io->invisibility;
 				
@@ -190,7 +190,7 @@ void ARXDRAW_DrawInterShadows()
 				
 				r *= 255.f;
 				long lv = r;
-				ltv[0].color = ltv[1].color = ltv[2].color = ltv[3].color = 0xFF000000 | lv<<16 | lv<<8 | lv;
+				ltv[0].color = ltv[1].color = ltv[2].color = ltv[3].color = Color(lv, lv, lv, 255).toRGBA();
 				
 				EE_RT(in, ltv[0].p);
 				in.x += s1;
@@ -287,7 +287,7 @@ void ARXDRAW_DrawPolyBoom()
 				EE_RT(ltv[k].p, ltv[k].p);
 				ltv[k].uv.x=pb->u[k];
 				ltv[k].uv.y=pb->v[k];
-				ltv[k].color = (player.m_improve ? (Color3f::red * (tt*.5f)) : Color3f::gray(tt)).toBGR();
+				ltv[k].color = (player.m_improve ? (Color3f::red * (tt*.5f)) : Color3f::gray(tt)).toRGB();
 			}
 			
 			if(player.m_improve) {
@@ -310,7 +310,7 @@ void ARXDRAW_DrawPolyBoom()
 			float div = 1.f / (float)pb->tolive;
 			float tt = t * div;
 			float tr = std::max(1.f, tt * 2 - 0.5f);
-			ColorBGRA col = (pb->rgb * tt * 0.8f).toBGR();
+			ColorRGBA col = (pb->rgb * tt * 0.8f).toRGB();
 			
 			IncrementPolyWithNormalOutput(pb->ep, ltv);
 			
@@ -339,7 +339,7 @@ void ARXDRAW_DrawPolyBoom()
 			float tt = t * div;
 			float tr = std::max(1.f, tt * 2 - 0.5f);
 			float ttt = tt * 0.5f;
-			ColorBGRA col = (pb->rgb * ttt).toBGR();
+			ColorRGBA col = (pb->rgb * ttt).toRGB();
 			
 			IncrementPolyWithNormalOutput(pb->ep,ltv);
 			

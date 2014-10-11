@@ -92,7 +92,6 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 
 #include "util/String.h"
 
-using std::string;
 
 extern bool GLOBAL_MAGIC_MODE;
 float FORCE_TIME_RESTORE = 0;
@@ -118,7 +117,7 @@ static void ARX_CHANGELEVEL_Pop_Globals();
 static long ARX_CHANGELEVEL_Push_Player(long level);
 static long ARX_CHANGELEVEL_Push_AllIO(long level);
 static long ARX_CHANGELEVEL_Push_IO(const Entity * io, long level);
-static Entity * ARX_CHANGELEVEL_Pop_IO(const string & ident, long num);
+static Entity * ARX_CHANGELEVEL_Pop_IO(const std::string & idString, EntityInstance instance);
 
 static fs::path CURRENT_GAME_FILE;
 
@@ -130,38 +129,38 @@ static SaveBlock * g_currentSavedGame = NULL;
 static ARX_CHANGELEVEL_IO_INDEX * idx_io = NULL;
 static ARX_CHANGELEVEL_INVENTORY_DATA_SAVE ** Gaids = NULL;
 
-static Entity * convertToValidIO(const string & ident) {
+static Entity * convertToValidIO(const std::string & idString) {
 	
 	CONVERT_CREATED = 0;
 	
-	if(ident.empty() || ident == "none") {
+	if(idString.empty() || idString == "none") {
 		return NULL;
 	}
 	
 	arx_assert(
-		ident.find_first_not_of("abcdefghijklmnopqrstuvwxyz_0123456789") == string::npos,
-		"bad interactive object ident: \"%s\"", ident.c_str()
+		idString.find_first_not_of("abcdefghijklmnopqrstuvwxyz_0123456789") == std::string::npos,
+		"bad interactive object id: \"%s\"", idString.c_str()
 	);
 	
-	EntityHandle t = entities.getById(ident);
+	EntityHandle t = entities.getById(idString);
 	
 	if(t > 0) {
 		arx_assert(ValidIONum(t), "got invalid IO num %ld", long(t));
 		return entities[t];
 	}
 	
-	LogDebug("Call to ConvertToValidIO(" << ident << ")");
+	LogDebug("Call to ConvertToValidIO(" << idString << ")");
 	
-	size_t pos = ident.find_last_of('_');
-	if(pos == string::npos || pos == ident.length() - 1) {
+	size_t pos = idString.find_last_of('_');
+	if(pos == std::string::npos || pos == idString.length() - 1) {
 		return NULL;
 	}
-	pos = ident.find_first_not_of('0', pos + 1);
-	if(pos == string::npos) {
+	pos = idString.find_first_not_of('0', pos + 1);
+	if(pos == std::string::npos) {
 		return NULL;
 	}
 	
-	return ARX_CHANGELEVEL_Pop_IO(ident, atoi(ident.substr(pos).c_str()));
+	return ARX_CHANGELEVEL_Pop_IO(idString, atoi(idString.substr(pos).c_str()));
 }
 
 template <size_t N>
@@ -172,16 +171,16 @@ static Entity * ConvertToValidIO(const char (&str)[N]) {
 template <size_t N>
 static EntityHandle ReadTargetInfo(const char (&str)[N]) {
 	
-	string ident = boost::to_lower_copy(util::loadString(str));
+	std::string idString = boost::to_lower_copy(util::loadString(str));
 	
-	if(ident == "none") {
+	if(idString == "none") {
 		return EntityHandle::Invalid;
-	} else if(ident == "self") {
+	} else if(idString == "self") {
 		return EntityHandle(-2);
-	} else if(ident == "player") {
+	} else if(idString == "player") {
 		return PlayerEntityHandle;
 	} else {
-		Entity * e = convertToValidIO(ident);
+		Entity * e = convertToValidIO(idString);
 		return (e == NULL) ? EntityHandle::Invalid : e->index();
 	}
 }
@@ -254,9 +253,9 @@ bool ARX_CHANGELEVEL_StartNew() {
 	return true;
 }
 
-bool currentSavedGameHasEntity(const std::string & ident) {
+bool currentSavedGameHasEntity(const std::string & idString) {
 	if(g_currentSavedGame) {
-		return g_currentSavedGame->hasFile(ident);
+		return g_currentSavedGame->hasFile(idString);
 	} else {
 		ARX_DEAD_CODE();
 		return false;
@@ -281,7 +280,7 @@ void currentSavedGameStoreEntityDeletion(const std::string & idString) {
 	
 }
 
-void currentSavedGameRemoveEntity(const string & idString) {
+void currentSavedGameRemoveEntity(const std::string & idString) {
 	if(g_currentSavedGame) {
 		g_currentSavedGame->remove(idString);
 	}
@@ -289,7 +288,7 @@ void currentSavedGameRemoveEntity(const string & idString) {
 
 extern long JUST_RELOADED;
 
-void ARX_CHANGELEVEL_Change(const string & level, const string & target, long angle) {
+void ARX_CHANGELEVEL_Change(const std::string & level, const std::string & target, long angle) {
 	
 	LogDebug("ARX_CHANGELEVEL_Change " << level << " " << target << " " << angle);
 	
@@ -491,7 +490,7 @@ static bool ARX_CHANGELEVEL_Push_Index(long num) {
 			ARX_CHANGELEVEL_IO_INDEX aii;
 			memset(&aii, 0, sizeof(aii));
 			util::storeString(aii.filename, (e->classPath() + ".teo").string().c_str());
-			aii.ident = e->ident;
+			aii.ident = e->instance();
 			aii.level = num;
 			aii.truelevel = num;
 			aii.num = i; // !!!
@@ -618,17 +617,17 @@ static void ARX_CHANGELEVEL_Push_Globals() {
 }
 
 template <size_t N>
-void FillIOIdent(char (&tofill)[N], const Entity * io) {
+static void storeIdString(char (&tofill)[N], const Entity * io) {
 	
 	if(!io || !ValidIOAddress(io)) {
 		BOOST_STATIC_ASSERT(N >= 4);
 		strcpy(tofill, "none");
 	} else {
 		
-		string ident = io->idString();
+		std::string idString = io->idString();
 		
-		arx_assert(ident.length() <= N);
-		strncpy(tofill, ident.c_str(),  N);
+		arx_assert(idString.length() <= N);
+		strncpy(tofill, idString.c_str(),  N);
 	}
 }
 
@@ -670,11 +669,11 @@ static long ARX_CHANGELEVEL_Push_Player(long level) {
 	asp->TELEPORT_TO_ANGLE = TELEPORT_TO_ANGLE;
 	asp->CHANGE_LEVEL_ICON = CHANGE_LEVEL_ICON;
 	asp->bag = player.bag;
-	FillIOIdent(asp->equipsecondaryIO, player.equipsecondaryIO);
-	FillIOIdent(asp->equipshieldIO, player.equipshieldIO);
-	FillIOIdent(asp->leftIO, player.leftIO);
-	FillIOIdent(asp->rightIO, player.rightIO);
-	FillIOIdent(asp->curtorch, player.torch);
+	storeIdString(asp->equipsecondaryIO, player.equipsecondaryIO);
+	storeIdString(asp->equipshieldIO, player.equipshieldIO);
+	storeIdString(asp->leftIO, player.leftIO);
+	storeIdString(asp->rightIO, player.rightIO);
+	storeIdString(asp->curtorch, player.torch);
 	
 	for(size_t i = 0; i < SAVED_MAX_PRECAST; i++) {
 		asp->precast[i].typ = SPELL_NONE;
@@ -688,7 +687,7 @@ static long ARX_CHANGELEVEL_Push_Player(long level) {
 	for(long iNbBag = 0; iNbBag < 3; iNbBag++) {
 		for(size_t m = 0; m < INVENTORY_Y; m++) {
 			for(size_t n = 0; n < INVENTORY_X; n++) {
-				FillIOIdent(asp->id_inventory[iNbBag][n][m], inventory[iNbBag][n][m].io);
+				storeIdString(asp->id_inventory[iNbBag][n][m], inventory[iNbBag][n][m].io);
 				asp->inventory_show[iNbBag][n][m] = inventory[iNbBag][n][m].show;
 			}
 		}
@@ -786,7 +785,7 @@ static long ARX_CHANGELEVEL_Push_Player(long level) {
 	{
 		if (ValidIONum(player.equiped[k])
 				&&	(player.equiped[k] > 0))
-			FillIOIdent(asp->equiped[k], entities[player.equiped[k]]);
+			storeIdString(asp->equiped[k], entities[player.equiped[k]]);
 		else
 			strcpy(asp->equiped[k], "");
 	}
@@ -877,7 +876,7 @@ void FillTargetInfo(char (&info)[N], EntityHandle numtarget) {
 	} else if(numtarget == 0) {
 		strcpy(info, "player");
 	} else if(ValidIONum(numtarget)) {
-		FillIOIdent(info, entities[numtarget]);
+		storeIdString(info, entities[numtarget]);
 	} else {
 		strcpy(info, "none");
 	}
@@ -894,7 +893,7 @@ static long ARX_CHANGELEVEL_Push_IO(const Entity * io, long level) {
 	arx_assert(io->show != SHOW_FLAG_KILLED);
 	
 	// Sets Savefile Name
-	string savefile = io->idString();
+	std::string savefile = io->idString();
 	
 	// Define Type & Affiliated Structure Size
 	long type;
@@ -925,7 +924,7 @@ static long ARX_CHANGELEVEL_Push_IO(const Entity * io, long level) {
 	ais.savesystem_type = type;
 	ais.saveflags = 0;
 	util::storeString(ais.filename, (io->classPath() + ".teo").string().c_str());
-	ais.ident = io->ident;
+	ais.ident = io->instance();
 	ais.ioflags = io->ioflags;
 
 	if(   (ais.ioflags & IO_FREEZESCRIPT)
@@ -1026,7 +1025,7 @@ static long ARX_CHANGELEVEL_Push_IO(const Entity * io, long level) {
 
 		for (size_t n = 0; n < io->obj->linked.size(); n++)
 		{
-			if (GetObjIOSource((EERIE_3DOBJ *)io->obj->linked[n].obj))
+			if (GetObjIOSource(io->obj->linked[n].obj))
 				ais.nb_linked++;
 		}
 
@@ -1036,13 +1035,13 @@ static long ARX_CHANGELEVEL_Push_IO(const Entity * io, long level) {
 
 		for (size_t n = 0; n < io->obj->linked.size(); n++)
 		{
-			if (GetObjIOSource((EERIE_3DOBJ *)io->obj->linked[n].obj))
+			if (GetObjIOSource(io->obj->linked[n].obj))
 			{
 				ais.linked_data[count].lgroup = io->obj->linked[count].lgroup;
 				ais.linked_data[count].lidx = io->obj->linked[count].lidx;
 				ais.linked_data[count].lidx2 = io->obj->linked[count].lidx2;
 				ais.linked_data[count].modinfo = SavedModInfo();
-				FillIOIdent(ais.linked_data[count].linked_id, GetObjIOSource(io->obj->linked[count].obj));
+				storeIdString(ais.linked_data[count].linked_id, GetObjIOSource(io->obj->linked[count].obj));
 				count++;
 			}
 		}
@@ -1318,7 +1317,7 @@ static long ARX_CHANGELEVEL_Push_IO(const Entity * io, long level) {
 			as->fightdecision = io->_npcdata->fightdecision;
 
 			if(io->_npcdata->lifePool.current > 0.f) {
-				FillIOIdent(as->id_weapon, io->_npcdata->weapon);
+				storeIdString(as->id_weapon, io->_npcdata->weapon);
 			} else {
 				as->id_weapon[0] = 0;
 			}
@@ -1426,7 +1425,7 @@ static long ARX_CHANGELEVEL_Push_IO(const Entity * io, long level) {
 		long m, n;
 
 		INVENTORY_DATA * inv = io->inventory;
-		FillIOIdent(aids->io, inv->io);
+		storeIdString(aids->io, inv->io);
 		aids->sizex = inv->m_size.x;
 		aids->sizey = inv->m_size.y;
 
@@ -1436,7 +1435,7 @@ static long ARX_CHANGELEVEL_Push_IO(const Entity * io, long level) {
 				aids->initio[m][n][0] = 0;
 
 				if (inv->slot[m][n].io)
-					FillIOIdent(aids->slot_io[m][n], inv->slot[m][n].io);
+					storeIdString(aids->slot_io[m][n], inv->slot[m][n].io);
 				else
 					aids->slot_io[m][n][0] = 0;
 				
@@ -1585,7 +1584,7 @@ long ARX_CHANGELEVEL_Pop_Level(ARX_CHANGELEVEL_INDEX * asi, long num, bool first
 	
 	char levelId[256];
 	GetLevelNameByNum(num, levelId);
-	string levelFile = string("graph/levels/level") + levelId + "/level" + levelId + ".dlf";
+	std::string levelFile = std::string("graph/levels/level") + levelId + "/level" + levelId + ".dlf";
 	
 	LOAD_N_DONT_ERASE = 1;
 	
@@ -1634,7 +1633,7 @@ long ARX_CHANGELEVEL_Pop_Level(ARX_CHANGELEVEL_INDEX * asi, long num, bool first
 
 static long ARX_CHANGELEVEL_Pop_Player() {
 	
-	const string & loadfile = "player";
+	const std::string & loadfile = "player";
 	
 	size_t size;
 	char * dat = g_currentSavedGame->load(loadfile, size);
@@ -1881,7 +1880,7 @@ static bool loadScriptVariables(SCRIPT_VARIABLES& var, const char * dat, size_t 
 		
 		var[i].name = boost::to_lower_copy(util::loadString(avs->name));
 			
-		if(var[i].name.find_first_not_of("abcdefghijklmnopqrstuvwxyz_0123456789", 1) != string::npos) {
+		if(var[i].name.find_first_not_of("abcdefghijklmnopqrstuvwxyz_0123456789", 1) != std::string::npos) {
 			LogWarning << "Unexpected variable name \"" << var[i].name.substr(1) << '"';
 		}
 		
@@ -1939,14 +1938,14 @@ static bool loadScriptData(EERIE_SCRIPT & script, const char * dat, size_t & pos
 	                           TYPE_L_TEXT, TYPE_L_LONG, TYPE_L_FLOAT);
 }
 
-static Entity * ARX_CHANGELEVEL_Pop_IO(const string & ident, long num) {
+static Entity * ARX_CHANGELEVEL_Pop_IO(const std::string & idString, EntityInstance instance) {
 	
-	LogDebug("--> loading interactive object " << ident);
+	LogDebug("--> loading interactive object " << idString);
 	
 	size_t size = 0; // TODO size not used
-	char * dat = g_currentSavedGame->load(ident, size);
+	char * dat = g_currentSavedGame->load(idString, size);
 	if(!dat) {
-		LogError << "Unable to Open " << ident << " for Read...";
+		LogError << "Unable to Open " << idString << " for Read...";
 		return NULL;
 	}
 	
@@ -1963,14 +1962,14 @@ static Entity * ARX_CHANGELEVEL_Pop_IO(const string & ident, long num) {
 	
 	if(ais->ioflags & IO_NOSAVE) {
 		// This item should not have been saved, yet here it is :(
-		LogWarning << "Tried to load entity that should never have been saved!";
+		LogWarning << "Tried to load entity that should never have been saved: " << idString;
 		free(dat);
 		return NULL;
 	}
 	
 	if(ais->show == SHOW_FLAG_DESTROYED || ais->show == SHOW_FLAG_KILLED) {
 		// Not supposed to happen anymore, but older saves have these (this is harmless bloat)
-		LogWarning << "Found destroyed entity " << ident << " in save file";
+		LogWarning << "Found destroyed entity " << idString << " in save file";
 		free(dat);
 		return NULL;
 	}
@@ -1991,10 +1990,10 @@ static Entity * ARX_CHANGELEVEL_Pop_IO(const string & ident, long num) {
 	// TODO when we bump the save version, remove the ext in the save file
 	// if no class names contain dots, we might get away without changing the ver
 	res::path classPath = res::path::load(path).remove_ext();
-	Entity * io = LoadInter_Ex(classPath, num, ais->pos.toVec3(), ais->angle, MSP);
+	Entity * io = LoadInter_Ex(classPath, instance, ais->pos.toVec3(), ais->angle, MSP);
 	
 	if(!io) {
-		LogError << "CHANGELEVEL Error: Unable to load " << ident;
+		LogError << "CHANGELEVEL Error: Unable to load " << idString;
 	} else {
 		
 		EntityHandle Gaids_Number = io->index();
@@ -2177,12 +2176,12 @@ static Entity * ARX_CHANGELEVEL_Pop_IO(const string & ident, long num) {
 		}
 		
 		if(!loadScriptData(io->script, dat, pos) || !loadScriptData(io->over_script, dat, pos)) {
-				LogError << "Save file is corrupted, trying to fix " << ident;
-				free(dat);
-				io->inventory = NULL;
-				RestoreInitialIOStatusOfIO(io);
-				SendInitScriptEvent(io);
-				return io;
+			LogError << "Save file is corrupted, trying to fix " << idString;
+			free(dat);
+			io->inventory = NULL;
+			RestoreInitialIOStatusOfIO(io);
+			SendInitScriptEvent(io);
+			return io;
 		}
 		
 		Gaids[Gaids_Number]->weapon[0] = '\0';
@@ -2258,7 +2257,7 @@ static Entity * ARX_CHANGELEVEL_Pop_IO(const string & ident, long num) {
 					*io->_npcdata->ex_rotate = as->ex_rotate;
 				}
 				
-				io->_npcdata->blood_color = Color::fromBGRA(as->blood_color);
+				io->_npcdata->blood_color = Color::fromBGRA(ColorBGRA(as->blood_color));
 				
 				break;
 			}
@@ -2799,7 +2798,7 @@ static bool ARX_CHANGELEVEL_PopLevel(long instance, bool reloadflag) {
 	return true;
 }
 
-bool ARX_CHANGELEVEL_Save(const string & name, const fs::path & savefile) {
+bool ARX_CHANGELEVEL_Save(const std::string & name, const fs::path & savefile) {
 	
 	arx_assert(!savefile.empty() && fs::exists(savefile.parent()));
 	
@@ -2938,7 +2937,7 @@ long ARX_CHANGELEVEL_Load(const fs::path & savefile) {
 	return 1;
 }
 
-long ARX_CHANGELEVEL_GetInfo(const fs::path & savefile, string & name, float & version,
+long ARX_CHANGELEVEL_GetInfo(const fs::path & savefile, std::string & name, float & version,
                              long & level, unsigned long & time) {
 	
 	ARX_CHANGELEVEL_PLAYER_LEVEL_DATA pld;

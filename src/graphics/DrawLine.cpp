@@ -37,7 +37,7 @@ void drawLine2D(float x0, float y0, float x1, float y1, float z, Color col) {
 	v[0].p.z = v[1].p.z = z;
 	v[1].p.x = x1;
 	v[1].p.y = y1;
-	v[1].color = v[0].color = col.toBGRA();
+	v[1].color = v[0].color = col.toRGBA();
 	v[1].rhw = v[0].rhw = 1.f;
 
 	GRenderer->ResetTexture(0);
@@ -53,7 +53,7 @@ void drawLineRectangle(const Rectf & rect, float z, Color col) {
 	v[3].p = Vec3f(rect.topLeft(), z);
 	v[4].p = v[0].p;
 	
-	v[4].color = v[3].color = v[2].color = v[1].color = v[0].color = col.toBGRA();
+	v[4].color = v[3].color = v[2].color = v[1].color = v[0].color = col.toRGBA();
 	v[4].rhw = v[3].rhw = v[2].rhw = v[1].rhw = v[0].rhw = 1.f;
 
 	GRenderer->ResetTexture(0);
@@ -67,8 +67,8 @@ void EERIEDrawFill2DRectDegrad(float x0, float y0, float x1, float y1, float z, 
 	v[0].p.y = v[1].p.y = y0;
 	v[1].p.x = v[3].p.x = x1;
 	v[2].p.y = v[3].p.y = y1;
-	v[0].color = v[1].color = cold.toBGRA();
-	v[2].color = v[3].color = cole.toBGRA();
+	v[0].color = v[1].color = cold.toRGBA();
+	v[2].color = v[3].color = cole.toRGBA();
 	v[0].p.z = v[1].p.z = v[2].p.z = v[3].p.z = z;
 	v[3].rhw = v[2].rhw = v[1].rhw = v[0].rhw = 1.f;
 
@@ -97,9 +97,9 @@ void drawLineSphere(const Sphere & sphere, Color color) {
 			float b = j * ((2 * PI) / sections);
 
 			Vec3f pos;
-			pos.x = cos(b) * sin(a);
-			pos.y = sin(b) * sin(a);
-			pos.z = cos(a);
+			pos.x = glm::cos(b) * glm::sin(a);
+			pos.y = glm::sin(b) * glm::sin(a);
+			pos.z = glm::cos(a);
 
 			pos *= sphere.radius;
 			pos += sphere.origin;
@@ -111,16 +111,16 @@ void drawLineSphere(const Sphere & sphere, Color color) {
 
 			if(skip) {
 				skip = false;
-				out.color = 0x00000000;
+				out.color = Color(0, 0, 0, 0).toRGBA();
 				vertices.push_back(out);
 			}
 
-			out.color = color.toBGRA();
+			out.color = color.toRGBA();
 			vertices.push_back(out);
 
 			if(j == sections) {
 				skip = true;
-				out.color = 0x00000000;
+				out.color = Color(0, 0, 0, 0).toRGBA();
 				vertices.push_back(out);
 			}
 		}
@@ -136,10 +136,10 @@ void drawLineCylinder(const Cylinder & cyl, Color col) {
 	
 	for(long i = 0; i < 360 - STEPCYL; i += STEPCYL) {
 
-		float es = sin(radians(MAKEANGLE((float)i))) * cyl.radius;
-		float ec = cos(radians(MAKEANGLE((float)i))) * cyl.radius;
-		float es2 = sin(radians(MAKEANGLE((float)(i + STEPCYL)))) * cyl.radius;
-		float ec2 = cos(radians(MAKEANGLE((float)(i + STEPCYL)))) * cyl.radius;
+		float es = glm::sin(glm::radians(MAKEANGLE((float)i))) * cyl.radius;
+		float ec = glm::cos(glm::radians(MAKEANGLE((float)i))) * cyl.radius;
+		float es2 = glm::sin(glm::radians(MAKEANGLE((float)(i + STEPCYL)))) * cyl.radius;
+		float ec2 = glm::cos(glm::radians(MAKEANGLE((float)(i + STEPCYL)))) * cyl.radius;
 
 		// Draw low pos
 		drawLine(cyl.origin + Vec3f(es, 0.f, ec), cyl.origin + Vec3f(es2, 0.f, ec2),  col);
@@ -170,8 +170,8 @@ void drawLine(const Vec3f & orgn, const Vec3f & dest, Color color1, Color color2
 	v[0].p.z -= zbias, v[1].p.z -= zbias;
 	
 	GRenderer->ResetTexture(0);
-	v[0].color = color1.toBGRA();
-	v[1].color = color2.toBGRA();
+	v[0].color = color1.toRGBA();
+	v[1].color = color2.toRGBA();
 	
 	EERIEDRAWPRIM(Renderer::LineList, v, 2);
 }

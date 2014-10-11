@@ -164,8 +164,6 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 
 InfoPanels g_debugInfo = InfoPanelNone;
 
-using std::string;
-
 extern long START_NEW_QUEST;
 long LOADQUEST_SLOT = -1; // OH NO, ANOTHER GLOBAL! - TEMP PATCH TO CLEAN CODE FLOW
 extern long PLAYER_PARALYSED;
@@ -187,8 +185,6 @@ extern EERIE_CAMERA conversationcamera;
 extern ParticleManager * pParticleManager;
 extern CircularVertexBuffer<TexturedVertex> * pDynamicVertexBuffer_TLVERTEX; // VB using TLVERTEX format.
 extern CircularVertexBuffer<SMY_VERTEX3> * pDynamicVertexBuffer;
-
-extern glm::mat4x4 ProjectionMatrix;
 
 long STOP_KEYBOARD_INPUT= 0;
 
@@ -227,6 +223,12 @@ bool ArxGame::initialize()
 		return false;
 	}
 	
+	init = initGameData();
+	if(!init) {
+		LogCritical << "Failed to initialize the game data.";
+		return false;
+	}
+	
 	init = initWindow();
 	if(!init) {
 		LogCritical << "Failed to initialize the windowing subsystem.";
@@ -242,12 +244,6 @@ bool ArxGame::initialize()
 	init = initSound();
 	if(!init) {
 		LogCritical << "Failed to initialize the sound subsystem.";
-		return false;
-	}
-	
-	init = initGameData();
-	if(!init) {
-		LogCritical << "Failed to initialize the game data.";
 		return false;
 	}
 	
@@ -534,8 +530,6 @@ bool ArxGame::initGameData() {
 		LogCritical << "Error loading pak files";
 		return false;
 	}
-
-	ARX_SOUND_LoadData();
 	
 	savegames.update(true);
 	
@@ -968,7 +962,7 @@ bool ArxGame::initGame()
 		
 		GoldCoinsObj[i] = loadObject(oss.str());
 		
-		oss.str(string());
+		oss.str(std::string());
 		
 		if(i == 0) {
 			oss << "graph/obj3d/interactive/items/jewelry/gold_coin/gold_coin[icon]";
@@ -1355,7 +1349,7 @@ void ArxGame::updateFirstPersonCamera() {
 		subj.d_angle = eyeball.angle;
 		EXTERNALVIEW = true;
 	} else if(EXTERNALVIEW) {
-		float t=radians(player.angle.getPitch());
+		float t=glm::radians(player.angle.getPitch());
 
 		for(long l=0; l < 250; l += 10) {
 			Vec3f tt = player.pos;
@@ -1455,7 +1449,7 @@ void ArxGame::updateConversationCamera() {
 			sourcepos = conversationcamera.orgTrans.pos;
 		} else {
 			targetpos = player.pos;
-			float t = radians(player.angle.getPitch());
+			float t = glm::radians(player.angle.getPitch());
 			sourcepos.x=targetpos.x+std::sin(t)*100.f;
 			sourcepos.y=targetpos.y;
 			sourcepos.z=targetpos.z-std::cos(t)*100.f;
@@ -1535,9 +1529,9 @@ void ArxGame::speechControlledCinematic() {
 				float beta = acs->startangle.getPitch() * itime + acs->endangle.getPitch() * rtime;
 				float distance = acs->startpos * itime + acs->endpos * rtime;
 				Vec3f targetpos = acs->pos1;
-				conversationcamera.orgTrans.pos.x=-std::sin(radians(MAKEANGLE(io->angle.getPitch()+beta)))*distance+targetpos.x;
-				conversationcamera.orgTrans.pos.y= std::sin(radians(MAKEANGLE(io->angle.getYaw()+alpha)))*distance+targetpos.y;
-				conversationcamera.orgTrans.pos.z= std::cos(radians(MAKEANGLE(io->angle.getPitch()+beta)))*distance+targetpos.z;
+				conversationcamera.orgTrans.pos.x=-std::sin(glm::radians(MAKEANGLE(io->angle.getPitch()+beta)))*distance+targetpos.x;
+				conversationcamera.orgTrans.pos.y= std::sin(glm::radians(MAKEANGLE(io->angle.getYaw()+alpha)))*distance+targetpos.y;
+				conversationcamera.orgTrans.pos.z= std::cos(glm::radians(MAKEANGLE(io->angle.getPitch()+beta)))*distance+targetpos.z;
 				conversationcamera.setTargetCamera(targetpos);
 				subj.orgTrans.pos = conversationcamera.orgTrans.pos;
 				subj.angle.setYaw(MAKEANGLE(-conversationcamera.angle.getYaw()));
@@ -1639,7 +1633,7 @@ void ArxGame::speechControlledCinematic() {
 void ArxGame::handlePlayerDeath() {
 	if(player.lifePool.current <= 0) {
 		DeadTime += static_cast<long>(framedelay);
-		float mdist = EEfabs(player.physics.cyl.height)-60;
+		float mdist = glm::abs(player.physics.cyl.height)-60;
 
 		float startDistance = 40.f;
 
@@ -1688,11 +1682,11 @@ void ArxGame::handleCameraController() {
 		float delta_angle = AngleDifference(currentbeta, CAMERACONTROLLER->angle.getPitch());
 		float delta_angle_t = delta_angle * framedelay * ( 1.0f / 1000 );
 
-		if(EEfabs(delta_angle_t) > EEfabs(delta_angle))
+		if(glm::abs(delta_angle_t) > glm::abs(delta_angle))
 			delta_angle_t = delta_angle;
 
 		currentbeta += delta_angle_t;
-		float t=radians(MAKEANGLE(currentbeta));
+		float t=glm::radians(MAKEANGLE(currentbeta));
 		conversationcamera.orgTrans.pos.x=targetpos.x+std::sin(t)*160.f;
 		conversationcamera.orgTrans.pos.y=targetpos.y+40.f;
 		conversationcamera.orgTrans.pos.z=targetpos.z-std::cos(t)*160.f;
@@ -1878,7 +1872,8 @@ void ArxGame::updateLevel() {
 		}
 	}
 
-
+	{ ARX_PROFILE("Entity preprocessing");
+	
 	for(size_t i = 0; i < entities.size(); i++) {
 		const EntityHandle handle = EntityHandle(i);
 		Entity *entity = entities[handle];
@@ -1922,7 +1917,7 @@ void ArxGame::updateLevel() {
 		
 		entity->speed_modif = speedModifier;
 	}
-
+	}
 
 	ARX_PLAYER_Manage_Movement();
 
@@ -2326,10 +2321,6 @@ void ArxGame::render() {
 			ShowInfoText();
 			break;
 		}
-		case InfoPanelTest: {
-			ShowTestText();
-			break;
-		}
 		case InfoPanelDebugToggles: {
 			ShowDebugToggles();
 			break;
@@ -2356,7 +2347,7 @@ void ArxGame::render() {
 
 void ArxGame::update2DFX()
 {
-	TexturedVertex lv,ltvv;
+	TexturedVertex ltvv;
 
 	Entity* pTableIO[256];
 	int nNbInTableIO = 0;
@@ -2376,8 +2367,8 @@ void ArxGame::update2DFX()
 		}
 
 		if(el->extras & EXTRAS_FLARE) {
-			lv.p = el->pos;
-			EE_RTP(lv.p, &ltvv);
+			Vec3f lv = el->pos;
+			EE_RTP(lv, &ltvv);
 			el->temp -= temp_increase;
 
 			if(!(player.Interface & INTER_COMBATMODE) && (player.Interface & INTER_MAP))
@@ -2390,15 +2381,15 @@ void ArxGame::update2DFX()
 				ltvv.p.y < (g_size.height()-(CINEMA_DECAL*g_sizeRatio.y))
 				)
 			{
-				Vec3f vector = lv.p - ACTIVECAM->orgTrans.pos;
-				lv.p -= vector * (50.f / glm::length(vector));
+				Vec3f vector = lv - ACTIVECAM->orgTrans.pos;
+				lv -= vector * (50.f / glm::length(vector));
 
-				float fZFar=ProjectionMatrix[2][2]*(1.f/(ACTIVECAM->cdepth*fZFogEnd))+ProjectionMatrix[3][2];
+				float fZFar=ACTIVECAM->ProjectionMatrix[2][2]*(1.f/(ACTIVECAM->cdepth*fZFogEnd))+ACTIVECAM->ProjectionMatrix[3][2];
 
 				Vec3f hit;
 				EERIEPOLY *tp=NULL;
 				Vec2s ees2dlv;
-				Vec3f ee3dlv = lv.p;
+				Vec3f ee3dlv = lv;
 
 				ees2dlv.x = checked_range_cast<short>(ltvv.p.x);
 				ees2dlv.y = checked_range_cast<short>(ltvv.p.y);

@@ -52,9 +52,6 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 #include "graphics/Math.h"
 #include "graphics/data/MeshManipulation.h"
 
-using std::max;
-using std::vector;
-using std::memset;
 
 void EERIE_COLLISION_Cylinder_Create(Entity * io)
 {
@@ -76,10 +73,10 @@ void EERIE_COLLISION_Cylinder_Create(Entity * io)
 	float d = 0.f;
 	float height = 0.f;
 	for(size_t i = 0; i < obj->vertexlist.size(); i++) {
-		if(i != (size_t)obj->origin && EEfabs(io->physics.cyl.origin.y - obj->vertexlist[i].v.y) < 20.f) {
-			d = max(d, glm::distance(io->physics.cyl.origin, obj->vertexlist[i].v));
+		if(i != (size_t)obj->origin && glm::abs(io->physics.cyl.origin.y - obj->vertexlist[i].v.y) < 20.f) {
+			d = std::max(d, glm::distance(io->physics.cyl.origin, obj->vertexlist[i].v));
 		}
-		height = max(height, io->physics.cyl.origin.y - obj->vertexlist[i].v.y);
+		height = std::max(height, io->physics.cyl.origin.y - obj->vertexlist[i].v.y);
 	}
 
 	if(d == 0.f || height == 0.f) {
@@ -121,7 +118,7 @@ void AddCollisionSphere(EERIE_3DOBJ * obj, long idx, float radius) {
 		return;
 	}
 	
-	for(vector<COLLISION_SPHERE>::iterator i = obj->sdata->spheres.begin(); i < obj->sdata->spheres.end(); ++i) {
+	for(std::vector<COLLISION_SPHERE>::iterator i = obj->sdata->spheres.begin(); i < obj->sdata->spheres.end(); ++i) {
 		
 		if(i->idx == idx) {
 			if(radius >= i->radius) {
@@ -200,13 +197,13 @@ float GetSphereRadiusForGroup(EERIE_3DOBJ * obj, Vec3f * center, Vec3f * dirvect
 		Vec3f targvect = (target - *center) * 1.f / distance;
 		float val = glm::dot(*dirvect, targvect);
 
-		if(fabs(val) < 1.2f) {
+		if(glm::abs(val) < 1.2f) {
 			if(distance > maxi)
 				distance = maxi;
 
 			curradius += distance;
 			div += 1.f;
-			maxf = max(maxf, distance);
+			maxf = std::max(maxf, distance);
 		}
 	}
 

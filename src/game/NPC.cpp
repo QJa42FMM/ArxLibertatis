@@ -105,6 +105,7 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 
 #include "platform/Flags.h"
 #include "platform/Platform.h"
+#include "platform/profiler/Profiler.h"
 
 #include "scene/Object.h"
 #include "scene/Interactive.h"
@@ -113,11 +114,6 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 #include "scene/Light.h"
 
 #include "script/Script.h"
-
-using std::sprintf;
-using std::min;
-using std::max;
-using std::string;
 
 void CheckNPCEx(Entity * io);
 
@@ -195,7 +191,7 @@ static void CheckHit(Entity * io, float ratioaim) {
 		for(size_t k = 0; k < ioo->obj->vertexlist.size(); k += 2) {
 			float dist = fdist(pos, entities[i]->obj->vertexlist3[k].v);
 
-			if(dist <= dist_limit && EEfabs(pos.y - entities[i]->obj->vertexlist3[k].v.y) < 60.f) {
+			if(dist <= dist_limit && glm::abs(pos.y - entities[i]->obj->vertexlist3[k].v.y) < 60.f) {
 				count++;
 
 				if(dist < mindist)
@@ -490,7 +486,7 @@ long ARX_NPC_GetNextAttainableNodeIncrement(Entity * io)
 		long pos = io->_npcdata->pathfind.list[io->_npcdata->pathfind.listpos+l_try];
 		io->physics.targetpos = ACTIVEBKG->anchors[pos].pos;
 
-		if(EEfabs(io->physics.startpos.y - io->physics.targetpos.y) > 60.f)
+		if(glm::abs(io->physics.startpos.y - io->physics.targetpos.y) > 60.f)
 			continue;
 
 		io->physics.targetpos.y += 60.f; // FAKE Gravity !
@@ -540,7 +536,7 @@ static long AnchorData_GetNearest(Vec3f * pos, Cylinder * cyl, long except = -1)
 
 static long AnchorData_GetNearest_2(float beta, Vec3f * pos, Cylinder * cyl) {
 	
-	float d = radians(beta);
+	float d = glm::radians(beta);
 	Vec3f vect(-std::sin(d), 0, std::cos(d));
 	vect = glm::normalize(vect);
 
@@ -630,7 +626,7 @@ bool ARX_NPC_LaunchPathfind(Entity * io, EntityHandle target)
 	io->_npcdata->pathfind.truetarget = target;
 	
 	if ((closerThan(pos1, ACTIVECAM->orgTrans.pos, ACTIVECAM->cdepth) * square(1.0f / 2))
-	        &&	(EEfabs(pos1.y - pos2.y) < 50.f)
+	        &&	(glm::abs(pos1.y - pos2.y) < 50.f)
 	        && (closerThan(pos1, pos2, 520)) && (io->_npcdata->behavior & BEHAVIOUR_MOVE_TO)
 	        && (!(io->_npcdata->behavior & BEHAVIOUR_SNEAK))
 	        && (!(io->_npcdata->behavior & BEHAVIOUR_FLEE))
@@ -739,7 +735,7 @@ failure:
 	return false;
 }
 
-bool ARX_NPC_SetStat(Entity& io, const string & statname, float value) {
+bool ARX_NPC_SetStat(Entity& io, const std::string & statname, float value) {
 	
 	arx_assert(io.ioflags & IO_NPC);
 	
@@ -929,6 +925,9 @@ static void ManageNPCMovement(Entity * io);
 extern float MAX_ALLOWED_PER_SECOND;
 
 void ARX_PHYSICS_Apply() {
+	
+	ARX_PROFILE_FUNC();
+	
 	static long CURRENT_DETECT = 0;
 
 	CURRENT_DETECT++;
@@ -938,6 +937,8 @@ void ARX_PHYSICS_Apply() {
 
 	// We don't manage Player(0) this way
 	for(long i = 1; i < TREATZONE_CUR; i++) {
+		ARX_PROFILE(IO);
+
 		if(treatio[i].show != 1)
 			continue;
 
@@ -978,7 +979,7 @@ void ARX_PHYSICS_Apply() {
 
 		if(   ep
 		   && (ep->type & POLY_LAVA)
-		   && EEfabs(ep->center.y - io->pos.y) < 40
+		   && glm::abs(ep->center.y - io->pos.y) < 40
 		) {
 			ARX_PARTICLES_Spawn_Lava_Burn(&io->pos, io);
 
@@ -1041,6 +1042,7 @@ void ARX_PHYSICS_Apply() {
 		}
 
 		if(io->ioflags & IO_NPC) {
+			ARX_PROFILE(IO_NPC);
 			if(io->_npcdata->climb_count != 0.f && framedelay > 0) {
 				io->_npcdata->climb_count -= MAX_ALLOWED_PER_SECOND * (float)framedelay * ( 1.0f / 1000 );
 
@@ -1102,7 +1104,7 @@ void FaceTarget2(Entity * io)
 		return;
 	}
 
-	float tangle = MAKEANGLE(180.f + degrees(getAngle(io->target.x, io->target.z, tv.x, tv.z)));
+	float tangle = MAKEANGLE(180.f + glm::degrees(getAngle(io->target.x, io->target.z, tv.x, tv.z)));
 	float cangle = io->angle.getPitch();
 
 	float tt = (cangle - tangle);
@@ -1112,8 +1114,8 @@ void FaceTarget2(Entity * io)
 
 	float rot = 0.33f * framedelay; 
 
-	if(EEfabs(tt) < rot)
-		rot = (float)EEfabs(tt);
+	if(glm::abs(tt) < rot)
+		rot = glm::abs(tt);
 
 	rot = -rot;
 
@@ -1165,7 +1167,7 @@ void StareAtTarget(Entity * io)
 	float rot = 0.27f * framedelay;
 	float alpha = MAKEANGLE(io->angle.getPitch());
 	float beta = -io->head_rot; 
-	float pouet = MAKEANGLE(180.f + degrees(getAngle(io->target.x, io->target.z, tv.x, tv.z)));
+	float pouet = MAKEANGLE(180.f + glm::degrees(getAngle(io->target.x, io->target.z, tv.x, tv.z)));
 	float A = MAKEANGLE((MAKEANGLE(alpha + beta) - pouet));
 	float B = MAKEANGLE(alpha - pouet);
 
@@ -1501,7 +1503,7 @@ bool TryIOAnimMove(Entity * io, long animnum)
 	phys.targetpos = io->pos + trans2;
 	bool res = ARX_COLLISION_Move_Cylinder(&phys, io, 30, CFLAG_JUST_TEST | CFLAG_NPC);
 
-	if(res && EEfabs(phys.cyl.origin.y - io->pos.y) < 20.f)
+	if(res && glm::abs(phys.cyl.origin.y - io->pos.y) < 20.f)
 		return true;
 
 	return false;
@@ -1818,7 +1820,7 @@ float GetIOHeight(Entity * io)
 	if(v < -165.f)
 		return -165.f;
 
-	return min(v, -45.f);
+	return std::min(v, -45.f);
 }
 
 float GetIORadius(Entity * io) {
@@ -1854,13 +1856,13 @@ void ComputeTolerance(Entity * io, EntityHandle targ, float * dst) {
 		if(entities[targ]->ioflags & IO_NO_COLLISIONS)
 			targ_dist = 0.f;
 		else
-			targ_dist = max(entities[targ]->physics.cyl.radius, GetIORadius(entities[targ])); //entities[targ]->physics.cyl.radius;
+			targ_dist = std::max(entities[targ]->physics.cyl.radius, GetIORadius(entities[targ])); //entities[targ]->physics.cyl.radius;
 
 		// Compute min self close-dist
 		if(io->ioflags & IO_NO_COLLISIONS)
 			self_dist = 0.f;
 		else
-			self_dist = max(io->physics.cyl.radius, GetIORadius(io)); //io->physics.cyl.radius;
+			self_dist = std::max(io->physics.cyl.radius, GetIORadius(io)); //io->physics.cyl.radius;
 
 		// Base tolerance = radius added
 		TOLERANCE = targ_dist + self_dist + 5.f;
@@ -1903,6 +1905,8 @@ void ComputeTolerance(Entity * io, EntityHandle targ, float * dst) {
 
 static void ManageNPCMovement(Entity * io)
 {
+	ARX_PROFILE_FUNC();
+	
 	float dis = std::numeric_limits<float>::max();
 	IO_PHYSICS phys;
 	float TOLERANCE = 0.f;
@@ -1924,12 +1928,12 @@ static void ManageNPCMovement(Entity * io)
 			aup->_curtime -= 500;
 			ARX_PATHS_Interpolate(aup, &tv);
 			aup->_curtime += 500;
-			io->angle.setPitch(MAKEANGLE(degrees(getAngle(tv.x, tv.z, io->pos.x, io->pos.z))));
+			io->angle.setPitch(MAKEANGLE(glm::degrees(getAngle(tv.x, tv.z, io->pos.x, io->pos.z))));
 		} else {
 			aup->_curtime += 500;
 			ARX_PATHS_Interpolate(aup, &tv);
 			aup->_curtime -= 500;
-			io->angle.setPitch(MAKEANGLE(180.f + degrees(getAngle(tv.x, tv.z, io->pos.x, io->pos.z))));
+			io->angle.setPitch(MAKEANGLE(180.f + glm::degrees(getAngle(tv.x, tv.z, io->pos.x, io->pos.z))));
 		}
 		return;
 	}
@@ -2063,7 +2067,7 @@ static void ManageNPCMovement(Entity * io)
 				for(long n = 0; n < 4; n++) {
 					extraRotation->group_rotate[n].setPitch(extraRotation->group_rotate[n].getPitch() - extraRotation->group_rotate[n].getPitch() * (1.0f / 3));
 
-					if(fabs(extraRotation->group_rotate[n].getPitch()) < 0.01f)
+					if(glm::abs(extraRotation->group_rotate[n].getPitch()) < 0.01f)
 						extraRotation->group_rotate[n].setPitch(0.f);
 				}
 			} else {
@@ -2090,7 +2094,7 @@ static void ManageNPCMovement(Entity * io)
 			for(long n = 0; n < 4; n++) {
 				io->_npcdata->ex_rotate->group_rotate[n].setPitch(io->_npcdata->ex_rotate->group_rotate[n].getPitch() - io->_npcdata->ex_rotate->group_rotate[n].getPitch() * (1.0f / 3));
 
-				if(fabs(io->_npcdata->ex_rotate->group_rotate[n].getPitch()) < 0.01f)
+				if(glm::abs(io->_npcdata->ex_rotate->group_rotate[n].getPitch()) < 0.01f)
 					io->_npcdata->ex_rotate->group_rotate[n].setPitch(0.f);
 			}
 		}
@@ -2295,7 +2299,7 @@ static void ManageNPCMovement(Entity * io)
 	if(io->forcedmove == Vec3f_ZERO) {
 		ForcedMove = Vec3f_ZERO;
 	} else {
-		float dd = min(1.f, (float)framedelay * (1.0f / 6) / glm::length(io->forcedmove));
+		float dd = std::min(1.f, (float)framedelay * (1.0f / 6) / glm::length(io->forcedmove));
 		ForcedMove = io->forcedmove * dd;
 	}
 
@@ -2490,7 +2494,7 @@ static void ManageNPCMovement(Entity * io)
 			if(io->_npcdata->pathfind.listnb > 0) {
 			argh:;
 
-				long lMax = max(ARX_NPC_GetNextAttainableNodeIncrement(io), 1L);
+				long lMax = std::max(ARX_NPC_GetNextAttainableNodeIncrement(io), 1L);
 
 				io->_npcdata->pathfind.listpos = checked_range_cast<unsigned short>(io->_npcdata->pathfind.listpos + lMax);
 
@@ -2526,7 +2530,7 @@ static void ManageNPCMovement(Entity * io)
 						io->targetinfo = io->_npcdata->pathfind.truetarget;
 						GetTargetPos(io);
 
-						if(fabs(io->pos.y - io->target.y) > 200.f) {
+						if(glm::abs(io->pos.y - io->target.y) > 200.f) {
 							io->_npcdata->pathfind.listnb = -2;
 						}
 					}
@@ -2597,7 +2601,7 @@ float AngularDifference(float a1, float a2)
 	}
 
 	ret = a1 - a2;
-	ret = min(ret, (a2 + 360) - a1);
+	ret = std::min(ret, (a2 + 360) - a1);
 	return ret;
 
 }
@@ -2625,10 +2629,14 @@ Entity * ARX_NPC_GetFirstNPCInSight(Entity * ioo)
 		const EntityHandle handle = EntityHandle(i);
 		Entity * io = entities[handle];
 
-		if(!io || IsDeadNPC(io) || io == ioo
-				|| !(io->ioflags & IO_NPC)
-				|| io->show != SHOW_FLAG_IN_SCENE)
+		if(   !io
+		   || IsDeadNPC(io)
+		   || io == ioo
+		   || !(io->ioflags & IO_NPC)
+		   || io->show != SHOW_FLAG_IN_SCENE
+		) {
 			continue;
+		}
 
 		float dist_io = glm::distance2(io->pos, ioo->pos);
 
@@ -2676,9 +2684,9 @@ Entity * ARX_NPC_GetFirstNPCInSight(Entity * ioo)
 
 
 		float aa = getAngle(orgn.x, orgn.z, dest.x, dest.z);
-		aa = MAKEANGLE(degrees(aa));
+		aa = MAKEANGLE(glm::degrees(aa));
 
-		if(EEfabs(AngularDifference(aa, ab)) < 110.f) {
+		if(glm::abs(AngularDifference(aa, ab)) < 110.f) {
 			if(dist_io < square(200)) {
 				if(found_dist > dist_io) {
 					found_io = io;
@@ -2745,6 +2753,8 @@ void CheckNPC(Entity * io)
  */
 void CheckNPCEx(Entity * io) {
 	
+	ARX_PROFILE_FUNC();
+
 	// Distance Between Player and IO
 	float ds = glm::distance2(io->pos, player.basePosition());
 	
@@ -2767,7 +2777,7 @@ void CheckNPCEx(Entity * io) {
 		if(playerRoom > -1 && io->room > -1 && fdist > 2000.f) {
 			// nothing to do
 		} else if(ds < square(GetIORadius(io) + GetIORadius(entities.player()) + 15.f)
-		          && EEfabs(player.pos.y - io->pos.y) < 200.f) {
+		          && glm::abs(player.pos.y - io->pos.y) < 200.f) {
 			Visible = 1;
 		} else { // Make full visibility test
 			
@@ -2778,9 +2788,9 @@ void CheckNPCEx(Entity * io) {
 
 			// Check for Field of vision angle
 			float aa = getAngle(orgn.x, orgn.z, dest.x, dest.z);
-			aa = MAKEANGLE(degrees(aa));
+			aa = MAKEANGLE(glm::degrees(aa));
 			float ab = MAKEANGLE(io->angle.getPitch());
-			if(EEfabs(AngularDifference(aa, ab)) < 110.f) {
+			if(glm::abs(AngularDifference(aa, ab)) < 110.f) {
 				
 				// Check for Darkness/Stealth
 				if(CURRENT_PLAYER_COLOR > GetPlayerStealth() || player.torch
@@ -2813,9 +2823,9 @@ void CheckNPCEx(Entity * io) {
 
 void ARX_NPC_NeedStepSound(Entity * io, const Vec3f & pos, const float volume, const float power) {
 	
-	string _step_material = "foot_bare";
-	const string * step_material = &_step_material;
-	string floor_material = "earth";
+	std::string _step_material = "foot_bare";
+	const std::string * step_material = &_step_material;
+	std::string floor_material = "earth";
 
 	if(EEIsUnderWater(pos)) {
 		floor_material = "water";
@@ -3061,11 +3071,11 @@ void ManageIgnition_2(Entity * io) {
 		if(lightHandleIsValid(io->ignit_light)) {
 			EERIE_LIGHT * light = lightHandleGet(io->ignit_light);
 			
-			light->intensity = max(io->ignition * ( 1.0f / 10 ), 1.f);
-			light->fallstart = max(io->ignition * 10.f, 100.f);
-			light->fallend   = max(io->ignition * 25.f, 240.f);
-			float v = max((io->ignition * ( 1.0f / 10 )), 0.5f);
-			v = min(v, 1.f);
+			light->intensity = std::max(io->ignition * ( 1.0f / 10 ), 1.f);
+			light->fallstart = std::max(io->ignition * 10.f, 100.f);
+			light->fallend   = std::max(io->ignition * 25.f, 240.f);
+			float v = std::max((io->ignition * ( 1.0f / 10 )), 0.5f);
+			v = std::min(v, 1.f);
 			light->rgb.r = (1.f - rnd() * 0.2f) * v;
 			light->rgb.g = (0.8f - rnd() * 0.2f) * v;
 			light->rgb.b = (0.6f - rnd() * 0.2f) * v;

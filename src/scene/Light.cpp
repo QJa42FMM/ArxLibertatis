@@ -57,6 +57,8 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 #include "graphics/Draw.h"
 #include "graphics/DrawLine.h"
 
+#include "platform/profiler/Profiler.h"
+
 #include "scene/Object.h"
 #include "scene/GameSound.h"
 #include "scene/Interactive.h"
@@ -212,8 +214,10 @@ void ComputeLight2DPos(EERIE_LIGHT * _pL) {
 	}
 }
 
-void TreatBackgroundDynlights()
-{
+void TreatBackgroundDynlights() {
+	
+	ARX_PROFILE_FUNC();
+	
 	for(size_t i = 0; i < MAX_LIGHTS; i++) {
 		EERIE_LIGHT *light = GLight[i];
 
@@ -322,7 +326,9 @@ void TreatBackgroundDynlights()
 }
 
 void PrecalcDynamicLighting(long x0, long z0, long x1, long z1) {
-
+	
+	ARX_PROFILE_FUNC();
+	
 	TOTPDL = 0;
 	
 	float fx0 = ACTIVEBKG->Xdiv * (float)x0;
@@ -597,11 +603,11 @@ float GetColorz(const Vec3f &pos) {
 		long to = (ep->type & POLY_QUAD) ? 4 : 3;
 		float div = (1.0f / to);
 
-		EP_DATA & epdata = portals->room[ep->room].epdata[0];
+		EP_DATA & epdata = portals->rooms[ep->room].epdata[0];
 		ApplyTileLights(ep, epdata.p);
 
 		for(long i = 0; i < to; i++) {
-			Color col = Color::fromBGR(ep->tv[i].color);
+			Color col = Color::fromRGBA(ep->tv[i].color);
 			_ffr += float(col.r);
 			_ffg += float(col.g);
 			_ffb += float(col.b);
@@ -611,7 +617,7 @@ float GetColorz(const Vec3f &pos) {
 		_ffg *= div;
 		_ffb *= div;
 		float ratio, ratio2;
-		ratio = EEfabs(needy - pos.y) * ( 1.0f / 300 );
+		ratio = glm::abs(needy - pos.y) * ( 1.0f / 300 );
 		ratio = (1.f - ratio);
 		ratio2 = 1.f - ratio;
 		ffr = ffr * ratio2 + _ffr * ratio;
@@ -622,7 +628,7 @@ float GetColorz(const Vec3f &pos) {
 	return (std::min(ffr, 255.f) + std::min(ffg, 255.f) + std::min(ffb, 255.f)) * (1.f/3);
 }
 
-ColorBGRA ApplyLight(const glm::quat * quat, const Vec3f & position, const Vec3f & normal, const ColorMod & colorMod, float materialDiffuse) {
+ColorRGBA ApplyLight(const glm::quat * quat, const Vec3f & position, const Vec3f & normal, const ColorMod & colorMod, float materialDiffuse) {
 
 	Color3f tempColor = colorMod.ambientColor;
 
@@ -668,7 +674,7 @@ ColorBGRA ApplyLight(const glm::quat * quat, const Vec3f & position, const Vec3f
 	u8 ig = clipByte255(tempColor.g);
 	u8 ib = clipByte255(tempColor.b);
 
-	return (0xFF000000L | (ir << 16) | (ig << 8) | (ib));
+	return Color(ir, ig, ib, 255).toRGBA();
 }
 
 void ApplyTileLights(EERIEPOLY * ep, const Vec2s & pos)
@@ -690,10 +696,10 @@ void ApplyTileLights(EERIEPOLY * ep, const Vec2s & pos)
 		}
 
 		Color3f tempColor;
-		long c = ep->v[j].color;
-		tempColor.r = (float)((c >> 16) & 255);
-		tempColor.g = (float)((c >> 8) & 255);
-		tempColor.b = (float)(c & 255);
+		Color c = Color::fromRGBA(ep->v[j].color);
+		tempColor.r = c.r;
+		tempColor.g = c.g;
+		tempColor.b = c.b;
 
 		Vec3f & position = ep->v[j].p;
 		Vec3f & normal = ep->nrml[j];
@@ -727,7 +733,7 @@ void ApplyTileLights(EERIEPOLY * ep, const Vec2s & pos)
 		u8 ir = clipByte255(tempColor.r);
 		u8 ig = clipByte255(tempColor.g);
 		u8 ib = clipByte255(tempColor.b);
-		ep->tv[j].color = (0xFF000000L | (ir << 16) | (ig << 8) | (ib));
+		ep->tv[j].color = Color(ir, ig, ib, 255).toRGBA();
 	}
 }
 
@@ -751,7 +757,7 @@ void EERIERemovePrecalcLights() {
 		for(short l = 0; l < eg.nbpoly; l++) {
 			EERIEPOLY & ep = eg.polydata[l];
 			
-			ep.v[3].color = ep.v[2].color = ep.v[1].color = ep.v[0].color = Color::white.toBGR();
+			ep.v[3].color = ep.v[2].color = ep.v[1].color = ep.v[0].color = Color::white.toRGB();
 		}
 	}
 }

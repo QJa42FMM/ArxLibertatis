@@ -53,9 +53,6 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 
 #include "graphics/GraphicsTypes.h"
 
-using std::min;
-using std::max;
-
 /* Triangle/triangle intersection test routine,
  * int tri_tri_intersect(float V0[3],float V1[3],float V2[3],
  *                         float U0[3],float U1[3],float U2[3])
@@ -169,9 +166,9 @@ int coplanar_tri_tri(const float N[3], const float V0[3], const float V1[3], con
 	short i0, i1;
 	/* first project onto an axis-aligned plane, that maximizes the area */
 	/* of the triangles, compute indices: i0,i1. */
-	A[0] = EEfabs(N[0]);
-	A[1] = EEfabs(N[1]);
-	A[2] = EEfabs(N[2]);
+	A[0] = glm::abs(N[0]);
+	A[1] = glm::abs(N[1]);
+	A[2] = glm::abs(N[2]);
 
 	if (A[0] > A[1])
 	{
@@ -309,10 +306,10 @@ int tri_tri_intersect(const EERIE_TRI * VV, const EERIE_TRI * UU)
 	CROSS(D, N1, N2);
 
 	// compute and index to the largest component of D
-	max = (float)EEfabs(D[0]);
+	max = glm::abs(D[0]);
 	index = 0;
-	bb = (float)EEfabs(D[1]);
-	cc = (float)EEfabs(D[2]);
+	bb = glm::abs(D[1]);
+	cc = glm::abs(D[2]);
 
 	if (bb > max) max = bb, index = 1;
 
@@ -359,23 +356,23 @@ int tri_tri_intersect(const EERIE_TRI * VV, const EERIE_TRI * UU)
 
 // Computes Bounding Box for a triangle
 static inline void Triangle_ComputeBoundingBox(EERIE_3D_BBOX * bb, const EERIE_TRI * v) {
-	bb->min.x = min(v->v[0].x, v->v[1].x);
-	bb->min.x = min(bb->min.x, v->v[2].x);
+	bb->min.x = std::min(v->v[0].x, v->v[1].x);
+	bb->min.x = std::min(bb->min.x, v->v[2].x);
 
-	bb->max.x = max(v->v[0].x, v->v[1].x);
-	bb->max.x = max(bb->max.x, v->v[2].x);
+	bb->max.x = std::max(v->v[0].x, v->v[1].x);
+	bb->max.x = std::max(bb->max.x, v->v[2].x);
 
-	bb->min.y = min(v->v[0].y, v->v[1].y);
-	bb->min.y = min(bb->min.y, v->v[2].y);
+	bb->min.y = std::min(v->v[0].y, v->v[1].y);
+	bb->min.y = std::min(bb->min.y, v->v[2].y);
 
-	bb->max.y = max(v->v[0].y, v->v[1].y);
-	bb->max.y = max(bb->max.y, v->v[2].y);
+	bb->max.y = std::max(v->v[0].y, v->v[1].y);
+	bb->max.y = std::max(bb->max.y, v->v[2].y);
 
-	bb->min.z = min(v->v[0].z, v->v[1].z);
-	bb->min.z = min(bb->min.z, v->v[2].z);
+	bb->min.z = std::min(v->v[0].z, v->v[1].z);
+	bb->min.z = std::min(bb->min.z, v->v[2].z);
 
-	bb->max.z = max(v->v[0].z, v->v[1].z);
-	bb->max.z = max(bb->max.z, v->v[2].z);
+	bb->max.z = std::max(v->v[0].z, v->v[1].z);
+	bb->max.z = std::max(bb->max.z, v->v[2].z);
 }
 
 bool Triangles_Intersect(const EERIE_TRI * v, const EERIE_TRI * u)
@@ -496,12 +493,12 @@ bool CylinderInCylinder(const Cylinder & cyl1, const Cylinder & cyl2)
 // Sort of...
 bool SphereInCylinder(const Cylinder & cyl1, const Sphere & s)
 {
-	float m1 = max(cyl1.origin.y, cyl1.origin.y + cyl1.height);
+	float m1 = std::max(cyl1.origin.y, cyl1.origin.y + cyl1.height);
 	float m2 = s.origin.y - s.radius;
 
 	if (m2 > m1) return false;
 
-	m1 = min(cyl1.origin.y, cyl1.origin.y + cyl1.height);
+	m1 = std::min(cyl1.origin.y, cyl1.origin.y + cyl1.height);
 	m2 = s.origin.y + s.radius;
 
 	if (m1 > m2) return false;
@@ -534,7 +531,7 @@ glm::quat Quat_Slerp(const glm::quat & from, glm::quat to, float ratio)
 
 	if (1.0f - fCosTheta > 0.001f)
 	{
-		float fTheta = acosf(fCosTheta);
+		float fTheta = glm::acos(fCosTheta);
 		float t = 1 / std::sin(fTheta);
 		fBeta = std::sin(fTheta * fBeta) * t ;
 		ratio = std::sin(fTheta * ratio) * t ;
@@ -553,16 +550,16 @@ glm::quat Quat_Slerp(const glm::quat & from, glm::quat to, float ratio)
 //*************************************************************************************
 glm::quat QuatFromAngles(const Anglef & angle) {
 	float A, B;
-	A = radians(angle.getYaw()) * ( 1.0f / 2 );
-	B = radians(angle.getPitch()) * ( 1.0f / 2 );
+	A = glm::radians(angle.getYaw()) * ( 1.0f / 2 );
+	B = glm::radians(angle.getPitch()) * ( 1.0f / 2 );
 
-	float fSinYaw   = sinf(A);
-	float fCosYaw   = cosf(A);
-	float fSinPitch = sinf(B);
-	float fCosPitch = cosf(B);
-	A = radians(angle.getRoll()) * ( 1.0f / 2 );
-	float fSinRoll  = sinf(A);
-	float fCosRoll  = cosf(A);
+	float fSinYaw   = glm::sin(A);
+	float fCosYaw   = glm::cos(A);
+	float fSinPitch = glm::sin(B);
+	float fCosPitch = glm::cos(B);
+	A = glm::radians(angle.getRoll()) * ( 1.0f / 2 );
+	float fSinRoll  = glm::sin(A);
+	float fCosRoll  = glm::cos(A);
 	A = fCosRoll * fCosPitch;
 	B = fSinRoll * fSinPitch;
 	
@@ -575,9 +572,9 @@ glm::quat QuatFromAngles(const Anglef & angle) {
 }
 
 glm::mat4 toRotationMatrix(const Anglef & angle) {
-	float yaw = radians(angle.getYaw());
-	float pitch = radians(angle.getPitch());
-	float roll = radians(angle.getRoll());
+	float yaw = glm::radians(angle.getYaw());
+	float pitch = glm::radians(angle.getPitch());
+	float roll = glm::radians(angle.getRoll());
 	
 	// 0.9.4.5 and older have a reversed sign in glm::eulerAngleY()
 #if GLM_VERSION_MAJOR == 0 \
@@ -614,8 +611,8 @@ glm::quat angleToQuatForArrow(const Anglef & angle) {
 }
 
 Vec3f angleToVecForArrow(const Anglef & angle) {
-	float anglea = radians(angle.getYaw());
-	float angleb = radians(angle.getPitch());
+	float anglea = glm::radians(angle.getYaw());
+	float angleb = glm::radians(angle.getPitch());
 	
 	Vec3f vect;
 	vect.x=-std::sin(angleb)*std::cos(anglea);
@@ -636,7 +633,7 @@ glm::quat angleToQuatForExtraRotation(const Anglef & angle) {
 
 std::pair<Vec3f, Vec3f> angleToFrontUpVecForSound(const Anglef & angle) {
 	
-	float t = radians(MAKEANGLE(angle.getPitch()));
+	float t = glm::radians(MAKEANGLE(angle.getPitch()));
 	Vec3f front(-std::sin(t), 0.f, std::cos(t));
 	front = glm::normalize(front);
 
@@ -652,7 +649,7 @@ std::pair<Vec3f, Vec3f> angleToFrontUpVecForSound(const Anglef & angle) {
 
 // Rotates a Vector around X. angle is given in degrees
 Vec3f VRotateX(const Vec3f in, const float angle) {
-	float s = radians(angle);
+	float s = glm::radians(angle);
 	float c = std::cos(s);
 	s = std::sin(s);
 	return Vec3f(in.x, (in.y * c) + (in.z * s), (in.z * c) - (in.y * s));
@@ -660,7 +657,7 @@ Vec3f VRotateX(const Vec3f in, const float angle) {
 
 // Rotates a Vector around Y. angle is given in degrees
 Vec3f VRotateY(const Vec3f in, const float angle) {
-	float s = radians(angle);
+	float s = glm::radians(angle);
 	float c = std::cos(s);
 	s = std::sin(s);
 	return Vec3f((in.x * c) + (in.z * s), in.y, (in.z * c) - (in.x * s));
@@ -668,7 +665,7 @@ Vec3f VRotateY(const Vec3f in, const float angle) {
 
 // Rotates a Vector around Z. angle is given in degrees
 Vec3f VRotateZ(const Vec3f in, const float angle) {
-	float s = radians(angle);
+	float s = glm::radians(angle);
 	float c = std::cos(s);
 	s = std::sin(s);
 	return Vec3f((in.x * c) + (in.y * s), (in.y * c) - (in.x * s), in.z);
@@ -762,10 +759,10 @@ void GenerateMatrixUsingVector(glm::mat4x4 & matrix, const Vec3f & vect, float r
 	// Generate the Z rotation matrix for roll
 	roll[2][2] = 1.f;
 	roll[3][3] = 1.f;
-	roll[0][0] =  std::cos(radians(rollDegrees));
-	roll[0][1] = -std::sin(radians(rollDegrees));
-	roll[1][0] =  std::sin(radians(rollDegrees));
-	roll[1][1] =  std::cos(radians(rollDegrees));
+	roll[0][0] =  std::cos(glm::radians(rollDegrees));
+	roll[0][1] = -std::sin(glm::radians(rollDegrees));
+	roll[1][0] =  std::sin(glm::radians(rollDegrees));
+	roll[1][1] =  std::cos(glm::radians(rollDegrees));
 
 	// Concatinate them for a complete rotation matrix that includes
 	// all rotations

@@ -118,8 +118,6 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 
 #include "script/ScriptEvent.h"
 
-using std::min;
-using std::vector;
 
 extern Entity * CAMERACONTROLLER;
 
@@ -356,7 +354,7 @@ bool ForceNPC_Above_Ground(Entity * io) {
 	if(io && (io->ioflags & IO_NPC) && !(io->ioflags & IO_PHYSICAL_OFF)) {
 		io->physics.cyl.origin = io->pos;
 		AttemptValidCylinderPos(io->physics.cyl, io, CFLAG_NO_INTERCOL);
-		if(EEfabs(io->pos.y - io->physics.cyl.origin.y) < 45.f) {
+		if(glm::abs(io->pos.y - io->physics.cyl.origin.y) < 45.f) {
 			io->pos.y = io->physics.cyl.origin.y;
 			return true;
 		}
@@ -398,9 +396,9 @@ void IO_UnlinkAllLinkedObjects(Entity * io) {
 		
 		Vec3f pos = io->obj->vertexlist3[io->obj->linked[k].lidx].v;
 		Vec3f vector;
-		vector.x = -std::sin(radians(linked->angle.getPitch())) * 0.5f;
-		vector.y =  std::sin(radians(linked->angle.getYaw()));
-		vector.z =  std::cos(radians(linked->angle.getPitch())) * 0.5f;
+		vector.x = -std::sin(glm::radians(linked->angle.getPitch())) * 0.5f;
+		vector.y =  std::sin(glm::radians(linked->angle.getYaw()));
+		vector.z =  std::cos(glm::radians(linked->angle.getPitch())) * 0.5f;
 		EERIE_PHYSICS_BOX_Launch(linked->obj, pos, linked->angle, vector);
 		
 	}
@@ -474,8 +472,10 @@ void CheckSetAnimOutOfTreatZone(Entity * io, long num)
 	}
 }
 
-void PrepareIOTreatZone(long flag)
-{
+void PrepareIOTreatZone(long flag) {
+	
+	ARX_PROFILE_FUNC();
+	
 	static long status = -1;
 	static Vec3f lastpos;
 
@@ -1147,11 +1147,11 @@ bool ARX_INTERACTIVE_ConvertToValidPosForIO(Entity * io, Vec3f * target) {
 		phys.origin.z = target->z + modz;
 		float anything = CheckAnythingInCylinder(phys, io, CFLAG_JUST_TEST);
 
-		if(EEfabs(anything) < 150.f) {
+		if(glm::abs(anything) < 150.f) {
 			EERIEPOLY * ep = CheckInPoly(phys.origin + Vec3f(0.f, -20.f, 0.f));
 			EERIEPOLY * ep2 = CheckTopPoly(phys.origin + Vec3f(0.f, anything, 0.f));
 
-			if(ep && ep2 && EEfabs((phys.origin.y + anything) - ep->center.y) < 20.f) {
+			if(ep && ep2 && glm::abs((phys.origin.y + anything) - ep->center.y) < 20.f) {
 				target->x = phys.origin.x;
 				target->y = phys.origin.y + anything;
 				target->z = phys.origin.z;
@@ -1217,7 +1217,7 @@ void ComputeVVPos(Entity * io)
 		}
 
 		float diff = io->pos.y - vvp;
-		float fdiff = EEfabs(diff);
+		float fdiff = glm::abs(diff);
 		float eediff = fdiff;
 
 		if(fdiff > 120.f) {
@@ -1406,50 +1406,33 @@ void LinkObjToMe(Entity * io, Entity * io2, const std::string & attach) {
  * \brief Creates a Temporary IO Ident
  * \param io
  */
-static void MakeTemporaryIOIdent(Entity * io) {
+static EntityInstance getFreeEntityInstance(const res::path & classPath) {
 	
-	if(!io)
-		return;
+	std::string className = classPath.filename();
+	res::path classDir = classPath.parent();
 	
-	std::string className = io->className();
-	res::path classDir = io->classPath().parent();
+	std::ostringstream oss;
 	
-	for(long t = 1; ; t++) {
+	for(EntityInstance instance = 1; ; instance++) {
+		
+		std::string idString = EntityId(className, instance).string();
 		
 		// Check if the candidate instance number is used in the current scene
-		bool used = false;
-		// TODO replace this loop by an (className, instance) index
-		for(size_t i = 0; i < entities.size(); i++) {
-			const EntityHandle handle = EntityHandle(i);
-			Entity * e = entities[handle];
-			
-			if(e && e->ident == t && io != e) {
-				if(e->className() == className) {
-					used = true;
-					break;
-				}
-			}
-		}
-		if(used) {
-			continue;
-		}
-		
-		std::stringstream ss;
-		ss << className << '_' << std::setw(4) << std::setfill('0') << t;
-		
-		// Check if the candidate instance number is reserved for any scene
-		if(resources->getDirectory(classDir / ss.str())) {
+		if(entities.getById(idString) != EntityHandle::Invalid) {
 			continue;
 		}
 		
 		// Check if the candidate instance number is used in any visited area
-		if(currentSavedGameHasEntity(ss.str())) {
+		if(currentSavedGameHasEntity(idString)) {
 			continue;
 		}
 		
-		io->ident = t;
+		// Check if the candidate instance number is reserved for any scene
+		if(resources->getDirectory(classDir / idString)) {
+			continue;
+		}
 		
-		return;
+		return instance;
 	}
 }
 
@@ -1463,14 +1446,12 @@ Entity * AddFix(const res::path & classPath, EntityInstance instance, AddInterac
 		return NULL;
 	}
 	
-	Entity * io = new Entity(classPath);
-	
 	if(instance == -1) {
-		MakeTemporaryIOIdent(io);
-	} else {
-		arx_assert(instance > 0);
-		io->ident = instance;
+		instance = getFreeEntityInstance(classPath);
 	}
+	arx_assert(instance > 0);
+	
+	Entity * io = new Entity(classPath, instance);
 	
 	io->_fixdata = (IO_FIXDATA *)malloc(sizeof(IO_FIXDATA));
 	memset(io->_fixdata, 0, sizeof(IO_FIXDATA));
@@ -1485,11 +1466,11 @@ Entity * AddFix(const res::path & classPath, EntityInstance instance, AddInterac
 	
 	io->spellcast_data.castingspell = SPELL_NONE;
 	io->pos = player.pos;
-	io->pos.x -= std::sin(radians(player.angle.getPitch())) * 140.f;
-	io->pos.z += std::cos(radians(player.angle.getPitch())) * 140.f;
+	io->pos.x -= std::sin(glm::radians(player.angle.getPitch())) * 140.f;
+	io->pos.z += std::cos(glm::radians(player.angle.getPitch())) * 140.f;
 	io->lastpos = io->initpos = io->pos;
-	io->lastpos.x = io->initpos.x = EEfabs(io->initpos.x / 20) * 20.f;
-	io->lastpos.z = io->initpos.z = EEfabs(io->initpos.z / 20) * 20.f;
+	io->lastpos.x = io->initpos.x = glm::abs(io->initpos.x / 20) * 20.f;
+	io->lastpos.z = io->initpos.z = glm::abs(io->initpos.z / 20) * 20.f;
 	
 	float tempo;
 	EERIEPOLY * ep = CheckInPoly(io->pos + Vec3f(0.f, player.baseHeight(), 0.f));
@@ -1499,8 +1480,8 @@ Entity * AddFix(const res::path & classPath, EntityInstance instance, AddInterac
 	
 	ep = CheckInPoly(io->pos);
 	if(ep) {
-		io->pos.y = min(ep->v[0].p.y, ep->v[1].p.y);
-		io->lastpos.y = io->initpos.y = io->pos.y = min(io->pos.y, ep->v[2].p.y);
+		io->pos.y = std::min(ep->v[0].p.y, ep->v[1].p.y);
+		io->lastpos.y = io->initpos.y = io->pos.y = std::min(io->pos.y, ep->v[2].p.y);
 	}
 	
 	if(!io->obj && !(flags & NO_MESH)) {
@@ -1535,23 +1516,21 @@ static Entity * AddCamera(const res::path & classPath, EntityInstance instance) 
 		return NULL;
 	}
 	
-	Entity * io = new Entity(classPath);
-	
 	if(instance == -1) {
-		MakeTemporaryIOIdent(io);
-	} else {
-		arx_assert(instance > 0);
-		io->ident = instance;
+		instance = getFreeEntityInstance(classPath);
 	}
+	arx_assert(instance > 0);
+	
+	Entity * io = new Entity(classPath, instance);
 	
 	GetIOScript(io, script);
 	
 	io->pos = player.pos;
-	io->pos.x -= std::sin(radians(player.angle.getPitch())) * 140.f;
-	io->pos.z += std::cos(radians(player.angle.getPitch())) * 140.f;
+	io->pos.x -= std::sin(glm::radians(player.angle.getPitch())) * 140.f;
+	io->pos.z += std::cos(glm::radians(player.angle.getPitch())) * 140.f;
 	io->lastpos = io->initpos = io->pos;
-	io->lastpos.x = io->initpos.x = EEfabs(io->initpos.x / 20) * 20.f;
-	io->lastpos.z = io->initpos.z = EEfabs(io->initpos.z / 20) * 20.f;
+	io->lastpos.x = io->initpos.x = glm::abs(io->initpos.x / 20) * 20.f;
+	io->lastpos.z = io->initpos.z = glm::abs(io->initpos.z / 20) * 20.f;
 	
 	float tempo;
 	EERIEPOLY * ep;
@@ -1562,8 +1541,8 @@ static Entity * AddCamera(const res::path & classPath, EntityInstance instance) 
 	
 	ep = CheckInPoly(io->pos);
 	if(ep) {
-		io->pos.y = min(ep->v[0].p.y, ep->v[1].p.y);
-		io->lastpos.y = io->initpos.y = io->pos.y = min(io->pos.y, ep->v[2].p.y);
+		io->pos.y = std::min(ep->v[0].p.y, ep->v[1].p.y);
+		io->lastpos.y = io->initpos.y = io->pos.y = std::min(io->pos.y, ep->v[2].p.y);
 	}
 	
 	io->lastpos.y = io->initpos.y = io->pos.y += player.baseHeight();
@@ -1589,23 +1568,21 @@ static Entity * AddMarker(const res::path & classPath, EntityInstance instance) 
 		return NULL;
 	}
 	
-	Entity * io = new Entity(classPath);
-	
 	if(instance == -1) {
-		MakeTemporaryIOIdent(io);
-	} else {
-		arx_assert(instance > 0);
-		io->ident = instance;
+		instance = getFreeEntityInstance(classPath);
 	}
+	arx_assert(instance > 0);
+	
+	Entity * io = new Entity(classPath, instance);
 	
 	GetIOScript(io, script);
 	
 	io->pos = player.pos;
-	io->pos.x -= std::sin(radians(player.angle.getPitch())) * 140.f;
-	io->pos.z += std::cos(radians(player.angle.getPitch())) * 140.f;
+	io->pos.x -= std::sin(glm::radians(player.angle.getPitch())) * 140.f;
+	io->pos.z += std::cos(glm::radians(player.angle.getPitch())) * 140.f;
 	io->lastpos = io->initpos = io->pos;
-	io->lastpos.x = io->initpos.x = EEfabs(io->initpos.x / 20) * 20.f;
-	io->lastpos.z = io->initpos.z = EEfabs(io->initpos.z / 20) * 20.f;
+	io->lastpos.x = io->initpos.x = glm::abs(io->initpos.x / 20) * 20.f;
+	io->lastpos.z = io->initpos.z = glm::abs(io->initpos.z / 20) * 20.f;
 	
 	float tempo;
 	EERIEPOLY * ep;
@@ -1616,8 +1593,8 @@ static Entity * AddMarker(const res::path & classPath, EntityInstance instance) 
 	
 	ep = CheckInPoly(io->pos);
 	if(ep) {
-		io->pos.y = min(ep->v[0].p.y, ep->v[1].p.y);
-		io->lastpos.y = io->initpos.y = io->pos.y = min(io->pos.y, ep->v[2].p.y);
+		io->pos.y = std::min(ep->v[0].p.y, ep->v[1].p.y);
+		io->lastpos.y = io->initpos.y = io->pos.y = std::min(io->pos.y, ep->v[2].p.y);
 	}
 	
 	io->lastpos.y = io->initpos.y = io->pos.y += player.baseHeight();
@@ -1709,14 +1686,12 @@ Entity * AddNPC(const res::path & classPath, EntityInstance instance, AddInterac
 		return NULL;
 	}
 	
-	Entity * io = new Entity(classPath);
-	
 	if(instance == -1) {
-		MakeTemporaryIOIdent(io);
-	} else {
-		arx_assert(instance > 0);
-		io->ident = instance;
+		instance = getFreeEntityInstance(classPath);
 	}
+	arx_assert(instance > 0);
+	
+	Entity * io = new Entity(classPath, instance);
 	
 	io->forcedmove = Vec3f_ZERO;
 	
@@ -1736,11 +1711,11 @@ Entity * AddNPC(const res::path & classPath, EntityInstance instance, AddInterac
 	}
 	
 	io->pos = player.pos;
-	io->pos.x -= std::sin(radians(player.angle.getPitch())) * 140.f;
-	io->pos.z += std::cos(radians(player.angle.getPitch())) * 140.f;
+	io->pos.x -= std::sin(glm::radians(player.angle.getPitch())) * 140.f;
+	io->pos.z += std::cos(glm::radians(player.angle.getPitch())) * 140.f;
 	io->lastpos = io->initpos = io->pos;
-	io->lastpos.x = io->initpos.x = EEfabs(io->initpos.x / 20) * 20.f;
-	io->lastpos.z = io->initpos.z = EEfabs(io->initpos.z / 20) * 20.f;
+	io->lastpos.x = io->initpos.x = glm::abs(io->initpos.x / 20) * 20.f;
+	io->lastpos.z = io->initpos.z = glm::abs(io->initpos.z / 20) * 20.f;
 	
 	float tempo;
 	EERIEPOLY * ep = CheckInPoly(io->pos + Vec3f(0.f, player.baseHeight(), 0.f));
@@ -1750,8 +1725,8 @@ Entity * AddNPC(const res::path & classPath, EntityInstance instance, AddInterac
 	
 	ep = CheckInPoly(io->pos);
 	if(ep) {
-		io->pos.y = min(ep->v[0].p.y, ep->v[1].p.y);
-		io->lastpos.y = io->initpos.y = io->pos.y = min(io->pos.y, ep->v[2].p.y);
+		io->pos.y = std::min(ep->v[0].p.y, ep->v[1].p.y);
+		io->lastpos.y = io->initpos.y = io->pos.y = std::min(io->pos.y, ep->v[2].p.y);
 	}
 	
 	if(!io->obj && !(flags & NO_MESH)) {
@@ -1773,38 +1748,6 @@ Entity * AddNPC(const res::path & classPath, EntityInstance instance, AddInterac
 	ARX_INTERACTIVE_HideGore(io);
 	return io;
 }
-
-#if BUILD_EDIT_LOADSAVE
-
-/*!
- * \brief Creates an unique identifier for an IO
- * \param io
- */
-void MakeIOIdent(Entity * io) {
-	if(!io)
-		return;
-	
-	long t = 1;
-	
-	while(io->ident == 0) {	
-		fs::path temp = fs::paths.user / io->instancePath().string();
-		
-		if(!fs::is_directory(temp)) {
-			io->ident = t;
-			
-			if(fs::create_directories(temp)) {
-				LogDirCreation(temp);
-				WriteIOInfo(io, temp);
-			} else {
-				LogError << "Could not create a unique identifier " << temp;
-			}
-		}
-
-		t++;
-	}
-}
-
-#endif // BUILD_EDIT_LOADSAVE
 
 Entity * AddItem(const res::path & classPath_, EntityInstance instance, AddInteractiveFlags flags) {
 	
@@ -1834,14 +1777,12 @@ Entity * AddItem(const res::path & classPath_, EntityInstance instance, AddInter
 		return NULL;
 	}
 	
-	Entity * io = new Entity(classPath);
-	
 	if(instance == -1) {
-		MakeTemporaryIOIdent(io);
-	} else {
-		arx_assert(instance > 0);
-		io->ident = instance;
+		instance = getFreeEntityInstance(classPath);
 	}
+	arx_assert(instance > 0);
+	
+	Entity * io = new Entity(classPath, instance);
 	
 	io->ioflags = type;
 	io->_itemdata = (IO_ITEMDATA *)malloc(sizeof(IO_ITEMDATA));
@@ -1868,8 +1809,8 @@ Entity * AddItem(const res::path & classPath_, EntityInstance instance, AddInter
 	
 	io->pos = player.pos;
 	
-	io->pos.x = io->pos.x - std::sin(radians(player.angle.getPitch())) * 140.f;
-	io->pos.z = io->pos.z + std::cos(radians(player.angle.getPitch())) * 140.f;
+	io->pos.x = io->pos.x - std::sin(glm::radians(player.angle.getPitch())) * 140.f;
+	io->pos.z = io->pos.z + std::cos(glm::radians(player.angle.getPitch())) * 140.f;
 	
 	io->lastpos.x = io->initpos.x = (float)((long)(io->pos.x / 20)) * 20.f;
 	io->lastpos.z = io->initpos.z = (float)((long)(io->pos.z / 20)) * 20.f;
@@ -1887,8 +1828,8 @@ Entity * AddItem(const res::path & classPath_, EntityInstance instance, AddInter
 	ep = CheckInPoly(io->pos);
 
 	if(ep) {
-		io->pos.y = min(ep->v[0].p.y, ep->v[1].p.y);
-		io->lastpos.y = io->initpos.y = io->pos.y = min(io->pos.y, ep->v[2].p.y);
+		io->pos.y = std::min(ep->v[0].p.y, ep->v[1].p.y);
+		io->lastpos.y = io->initpos.y = io->pos.y = std::min(io->pos.y, ep->v[2].p.y);
 	}
 
 	if(io->ioflags & IO_GOLD) {
@@ -1901,7 +1842,7 @@ Entity * AddItem(const res::path & classPath_, EntityInstance instance, AddInter
 	
 	TextureContainer * tc;
 	if (io->ioflags & IO_MOVABLE) {
-		tc = Movable;
+		tc = cursorMovable;
 	} else if (io->ioflags & IO_GOLD) {
 		tc = GoldCoinsTC[0];
 	} else {
@@ -2171,7 +2112,7 @@ static bool IsCollidingInter(Entity * io, const Vec3f & pos) {
 
 	if(closerThan(pos, io->pos, 190.f)) {
 		
-		vector<EERIE_VERTEX> & vlist = io->obj->vertexlist3;
+		std::vector<EERIE_VERTEX> & vlist = io->obj->vertexlist3;
 
 		if(io->obj->grouplist.size() > 4) {
 			for(size_t i = 0; i < io->obj->grouplist.size(); i++) {
@@ -2253,7 +2194,7 @@ bool ARX_INTERACTIVE_CheckFULLCollision(PHYSICS_BOX_DATA * pbox, EntityHandle so
 			else
 				step = 6;
 
-			vector<EERIE_VERTEX> & vlist = io->obj->vertexlist3;
+			std::vector<EERIE_VERTEX> & vlist = io->obj->vertexlist3;
 
 			if(io->gameFlags & GFLAG_PLATFORM) {
 				for(long kk = 0; kk < pbox->nb_physvert; kk++) {
@@ -2476,7 +2417,7 @@ void UpdateCameras() {
 				io->angle.setRoll(0.f);
 			} else {
 				// no target...
-				float tr = radians(MAKEANGLE(io->angle.getPitch() + 90));
+				float tr = glm::radians(MAKEANGLE(io->angle.getPitch() + 90));
 				io->target.x = io->pos.x - std::sin(tr) * 20.f;
 				io->target.y = io->pos.y;
 				io->target.z = io->pos.z + std::cos(tr) * 20.f;
@@ -2623,8 +2564,6 @@ void RenderInter() {
 						glm::mat4x4 mat = convertToMatrixForDrawEERIEInter(*io->obj->pbox);
 						glm::quat rotation = glm::toQuat(mat);
 						
-						arx_assert(io->obj->point0 == Vec3f_ZERO);
-
 						TransformInfo t(io->pos, rotation, io->scale, io->obj->pbox->vert[0].initpos);
 
 						float invisibility = Cedric_GetInvisibility(io);

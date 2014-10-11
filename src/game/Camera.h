@@ -66,6 +66,8 @@ struct EERIE_CAMERA {
 	float cdepth;
 
 	Anglef size;
+	
+	glm::mat4x4 ProjectionMatrix;
 
 	void setTargetCamera(const Vec3f &target) {
 		setTargetCamera(target.x, target.y, target.z);
@@ -76,8 +78,8 @@ struct EERIE_CAMERA {
 		if(orgTrans.pos.x == x && orgTrans.pos.y == y && orgTrans.pos.z == z)
 			return;
 
-		angle.setYaw((degrees(getAngle(orgTrans.pos.y, orgTrans.pos.z, y, orgTrans.pos.z + glm::distance(Vec2f(x, z), Vec2f(orgTrans.pos.x, orgTrans.pos.z)))))); //alpha entre orgn et dest;
-		angle.setPitch((180.f + degrees(getAngle(orgTrans.pos.x, orgTrans.pos.z, x, z)))); //beta entre orgn et dest;
+		angle.setYaw((glm::degrees(getAngle(orgTrans.pos.y, orgTrans.pos.z, y, orgTrans.pos.z + glm::distance(Vec2f(x, z), Vec2f(orgTrans.pos.x, orgTrans.pos.z)))))); //alpha entre orgn et dest;
+		angle.setPitch((180.f + glm::degrees(getAngle(orgTrans.pos.x, orgTrans.pos.z, x, z)))); //beta entre orgn et dest;
 		angle.setRoll(0.f);
 	}
 };

@@ -134,9 +134,9 @@ void CLightning::BuildS(LIGHTNING * pLInfo)
 		float fAngleZ = frand2() * (pLInfo->fAngleZMax - pLInfo->fAngleZMin) + pLInfo->fAngleZMin;
 
 		Vec3f av;
-		av.x = (float) cos(acos(avect.x) - radians(fAngleX));
-		av.y = (float) sin(asin(avect.y) - radians(fAngleY));
-		av.z = (float) tan(atan(avect.z) - radians(fAngleZ));
+		av.x = glm::cos(glm::acos(avect.x) - glm::radians(fAngleX));
+		av.y = glm::sin(glm::asin(avect.y) - glm::radians(fAngleY));
+		av.z = glm::tan(glm::atan(avect.z) - glm::radians(fAngleZ));
 		av = glm::normalize(av);
 		avect = av;
 
@@ -357,7 +357,7 @@ void CLightning::Render()
 		float temp = 1.5f * fMySize;
 		Vec3f z_z = cnodetab[cnodetab[i].parent].f + randomVec(-temp, temp);
 		float zz = cnodetab[i].size + cnodetab[i].size * 0.3f * rnd();
-		float xx = (float)(cnodetab[i].size * cos(radians(-fbeta)));
+		float xx = cnodetab[i].size * glm::cos(glm::radians(-fbeta));
 		cnodetab[i].f = z_z;
 		
 		Vec3f a = cnodetab[i].pos + z_z;
@@ -398,10 +398,10 @@ void CLightning::Render()
 		{
 		TexturedQuad q;
 		
-		q.v[0].color = 0xFFFFFFFF;
-		q.v[1].color = 0xFF00005A;
-		q.v[2].color = 0xFF00005A;
-		q.v[3].color = 0xFFFFFFFF;
+		q.v[0].color = Color(255, 255, 255, 255).toRGBA();
+		q.v[1].color = Color(0, 0, 90, 255).toRGBA();
+		q.v[2].color = Color(0, 0, 90, 255).toRGBA();
+		q.v[3].color = Color(255, 255, 255, 255).toRGBA();
 		q.v[0].uv = Vec2f(0.5f, 0.f);
 		q.v[1].uv = Vec2f_ZERO;
 		q.v[2].uv = Vec2f_Y_AXIS;
@@ -417,10 +417,10 @@ void CLightning::Render()
 		{
 		TexturedQuad q;
 
-		q.v[0].color = 0xFFFFFFFF;
-		q.v[1].color = 0xFF00005A;
-		q.v[2].color = 0xFF00005A;
-		q.v[3].color = 0xFFFFFFFF;
+		q.v[0].color = Color(255, 255, 255, 255).toRGBA();
+		q.v[1].color = Color(0, 0, 90, 255).toRGBA();
+		q.v[2].color = Color(0, 0, 90, 255).toRGBA();
+		q.v[3].color = Color(255, 255, 255, 255).toRGBA();
 		q.v[0].uv = Vec2f(0.5f, 0.f);
 		q.v[1].uv = Vec2f_X_AXIS;
 		q.v[2].uv = Vec2f_ONE;
@@ -433,15 +433,15 @@ void CLightning::Render()
 		drawQuadRTP(mat, q);
 		}
 		
-		zz *= (float) sin(radians(fbeta));
+		zz *= glm::sin(glm::radians(fbeta));
 		
 		{
 		TexturedQuad q;
 		
-		q.v[0].color = 0xFFFFFFFF;
-		q.v[1].color = 0xFF00005A;
-		q.v[2].color = 0xFF00005A;
-		q.v[3].color = 0xFFFFFFFF;
+		q.v[0].color = Color(255, 255, 255, 255).toRGBA();
+		q.v[1].color = Color(0, 0, 90, 255).toRGBA();
+		q.v[2].color = Color(0, 0, 90, 255).toRGBA();
+		q.v[3].color = Color(255, 255, 255, 255).toRGBA();
 		q.v[0].uv = Vec2f(0.5f, 0.f);
 		q.v[1].uv = Vec2f_X_AXIS;
 		q.v[2].uv = Vec2f_ONE;
@@ -457,10 +457,10 @@ void CLightning::Render()
 		{
 		TexturedQuad q;
 		
-		q.v[0].color = 0xFFFFFFFF;
-		q.v[1].color = 0xFF00005A;
-		q.v[2].color = 0xFF00005A;
-		q.v[3].color = 0xFFFFFFFF;
+		q.v[0].color = Color(255, 255, 255, 255).toRGBA();
+		q.v[1].color = Color(0, 0, 90, 255).toRGBA();
+		q.v[2].color = Color(0, 0, 90, 255).toRGBA();
+		q.v[3].color = Color(255, 255, 255, 255).toRGBA();
 		q.v[0].uv = Vec2f(0.5f, 0.f);
 		q.v[1].uv = Vec2f_ZERO;
 		q.v[2].uv = Vec2f_Y_AXIS;
@@ -542,7 +542,7 @@ void CConfuse::Render() {
 	mat.setTexture(tex_trail);
 	
 	Vec3f stitepos = eCurPos;
-	Anglef stiteangle = Anglef(0.f, -degrees(arxtime.get_updated() * ( 1.0f / 500 )), 0.f);
+	Anglef stiteangle = Anglef(0.f, -glm::degrees(arxtime.get_updated() * ( 1.0f / 500 )), 0.f);
 	Color3f stitecolor = Color3f::white;
 	Vec3f stitescale = Vec3f_ONE;
 	Draw3DObject(spapi, stiteangle, stitepos, stitescale, stitecolor, mat);
@@ -554,7 +554,7 @@ void CConfuse::Render() {
 			break;
 		}
 		
-		float ang = radians(rnd() * 360.f);
+		float ang = glm::radians(rnd() * 360.f);
 		float rad = rnd() * 15.f;
 		pd->ov = stitepos + Vec3f(-std::sin(ang) * rad, 0.f, std::cos(ang) * rad);
 		pd->move = Vec3f(0.f, rnd() * 3.f + 1.f, 0.f);
@@ -567,7 +567,7 @@ void CConfuse::Render() {
 		float t1 = rnd() * 0.4f + 0.4f;
 		float t2 = rnd() * 0.6f + 0.2f;
 		float t3 = rnd() * 0.4f + 0.4f;
-		while(EEfabs(t1 - t2) > 0.3f && EEfabs(t2 - t3) > 0.3f) {
+		while(glm::abs(t1 - t2) > 0.3f && glm::abs(t2 - t3) > 0.3f) {
 			t1 = rnd() * 0.4f + 0.4f;
 			t2 = rnd() * 0.6f + 0.2f;
 			t3 = rnd() * 0.4f + 0.4f;
@@ -658,7 +658,7 @@ void CFireField::Create(float largeur, const Vec3f & pos, int _ulDuration)
 	cp.m_lifeRandom = 500;
 	cp.m_pos = Vec3f(100, 10, 100);
 	cp.m_direction = Vec3f(0, -2, 0) * 0.1f;
-	cp.m_angle = radians(10);
+	cp.m_angle = glm::radians(10.f);
 	cp.m_speed = 0;
 	cp.m_speedRandom = 0;
 	cp.m_gravity = Vec3f_ZERO;
@@ -813,7 +813,7 @@ void CIceField::Render()
 		Vec3f stitescale;
 		Color3f stitecolor;
 
-		stiteangle.setPitch((float)cos(radians(tPos[i].x)) * 360);
+		stiteangle.setPitch(glm::cos(glm::radians(tPos[i].x)) * 360);
 		stitepos.x = tPos[i].x;
 		stitepos.y = eSrc.y;
 		stitepos.z = tPos[i].z;

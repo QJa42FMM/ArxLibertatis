@@ -19,6 +19,8 @@
 
 #include "graphics/opengl/GLDebug.h"
 
+#include <cstring>
+
 #include <GL/glew.h>
 
 #include "io/log/Logger.h"
@@ -71,15 +73,21 @@ void ARX_GLAPIENTRY callback(GLenum source,
                              GLuint id,
                              GLenum severity,
                              GLsizei length,
-                             const GLchar *message,
-                             void *userParam
+                             const GLchar * message,
+                             const void * userParam
 ) {
 	ARX_UNUSED(length);
 	ARX_UNUSED(userParam);
 	
 	std::ostringstream buffer;
 	
-	buffer << sourceToString(source) << " " << typeToString(type) << " #"<< id << ": " << message;
+	const GLchar * end = message + std::strlen(message);
+	while(end != message && (*(end - 1) == '\r' || *(end - 1) == '\n')) {
+		end--;
+	}
+	
+	buffer << sourceToString(source) << " " << typeToString(type) << " #"<< id << ": ";
+	buffer.write(message, end - message);
 	
 	switch(severity) {
 	case GL_DEBUG_SEVERITY_HIGH_ARB:
@@ -108,7 +116,13 @@ void initialize() {
 	}
 	
 	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
+	
+	// GLEW versions before 1.11.0 define GLDEBUGPROCARB with a non-const user pointer
+	#if defined(GLEW_VERSION_4_5)
 	glDebugMessageCallbackARB(gldebug::callback, NULL);
+	#else
+	glDebugMessageCallbackARB((GLDEBUGPROCARB)gldebug::callback, NULL);
+	#endif
 	
 	// Forward messages with high severity level
 	glDebugMessageControlARB(GL_DONT_CARE,

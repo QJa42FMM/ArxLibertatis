@@ -60,8 +60,6 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 
 #include "scene/Light.h"
 
-using std::list;
-
 void ParticleSystem::RecomputeDirection() {
 	Vec3f eVect = m_parameters.m_direction;
 	eVect.y = -eVect.y;
@@ -170,7 +168,7 @@ void ParticleSystem::SetTexture(const char * _pszTex, int _iNbTex, int _iTime) {
 		tex_tab[0] = TextureContainer::Load(_pszTex);
 		iNbTex = 0;
 	} else {
-		_iNbTex = min(_iNbTex, 20);
+		_iNbTex = std::min(_iNbTex, 20);
 		char cBuf[256];
 
 		for(int i = 0; i < _iNbTex; i++) {
@@ -233,7 +231,7 @@ void ParticleSystem::SetParticleParams(Particle * pP) {
 	vv1 = -Vec3f_Y_AXIS;
 	
 	VectorRotateZ(vv1, vvz, fAngleX); 
-	VectorRotateY(vvz, vv1, radians(rnd() * 360.0f));
+	VectorRotateY(vvz, vv1, glm::radians(rnd() * 360.0f));
 	
 	vvz = Vec3f(eMat * Vec4f(vv1, 1.f));
 
@@ -297,7 +295,7 @@ void ParticleSystem::Update(long _lTime) {
 	
 	iParticleNbAlive = 0;
 	
-	list<Particle *>::iterator i;
+	std::list<Particle *>::iterator i;
 	for(i = listParticle.begin(); i != listParticle.end(); ) {
 		Particle * pP = *i;
 		
@@ -352,7 +350,7 @@ void ParticleSystem::Render() {
 
 	int inumtex = 0;
 
-	list<Particle *>::iterator i;
+	std::list<Particle *>::iterator i;
 
 	for(i = listParticle.begin(); i != listParticle.end(); ++i) {
 		Particle * p = *i;

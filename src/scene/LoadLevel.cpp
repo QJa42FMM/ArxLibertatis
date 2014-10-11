@@ -95,8 +95,6 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 
 #include "util/String.h"
 
-using std::max;
-using std::string;
 
 extern bool bGCroucheToggle;
 
@@ -161,7 +159,7 @@ long DanaeSaveLevel(const fs::path & _fic) {
 
 					 + 1000000
 					 + nbARXpaths * sizeof(DANAE_LS_PATH) + nbARXpaths * sizeof(DANAE_LS_PATHWAYS) * 30;
-	allocsize = max((size_t)dlh.nb_bkgpolys * (sizeof(u32) + 2) + 1000000, allocsize);
+	allocsize = std::max((size_t)dlh.nb_bkgpolys * (sizeof(u32) + 2) + 1000000, allocsize);
 	
 	char * dat = new char[allocsize];
 	if(!dat) {
@@ -225,10 +223,8 @@ long DanaeSaveLevel(const fs::path & _fic) {
 			dli.angle = io->initangle;
 			util::storeString(dli.name, (io->classPath() + ".teo").string().c_str());
 			
-			if(io->ident == 0) {
-				MakeIOIdent(io);
-			}
-			dli.ident = io->ident;
+			arx_assert(io->instance() > 0);
+			dli.ident = io->instance();
 			
 			if(io->ioflags & IO_FREEZESCRIPT) {
 				dli.flags = IO_FREEZESCRIPT;
@@ -467,11 +463,7 @@ Entity * LoadInter_Ex(const res::path & classPath, EntityInstance instance,
                       const Vec3f & pos, const Anglef & angle,
                       const Vec3f & trans) {
 	
-	std::ostringstream nameident;
-	nameident << classPath.filename()
-	          << std::setfill('0') << std::setw(4) << instance;
-	
-	EntityHandle t = entities.getById(nameident.str());
+	EntityHandle t = entities.getById(EntityId(classPath, instance));
 	if(t != EntityHandle::Invalid) {
 		return entities[t];
 	}
@@ -491,7 +483,7 @@ Entity * LoadInter_Ex(const res::path & classPath, EntityInstance instance,
 	io->initangle = io->angle = angle;
 	
 	res::path tmp = io->instancePath(); // Get the directory name to check for
-	string id = io->className();
+	std::string id = io->className();
 	if(PakDirectory * dir = resources->getDirectory(tmp)) {
 		if(PakFile * file = dir->getFile(id + ".asl")) {
 			loadScript(io->over_script, file);
@@ -510,8 +502,12 @@ Entity * LoadInter_Ex(const res::path & classPath, EntityInstance instance,
 	return io;
 }
 
+ColorBGRA savedColorConversion(u32 bgra) {
+	return ColorBGRA(bgra);
+}
+
 static long LastLoadedLightningNb = 0;
-static u32 * LastLoadedLightning = NULL;
+static ColorBGRA * LastLoadedLightning = NULL;
 Vec3f loddpos;
 Vec3f MSP;
 
@@ -654,7 +650,7 @@ bool DanaeLoadLevel(const res::path & file, bool loadEntities) {
 		
 		if(loadEntities) {
 			
-			string pathstr = boost::to_lower_copy(util::loadString(dli->name));
+			std::string pathstr = boost::to_lower_copy(util::loadString(dli->name));
 			
 			size_t pos = pathstr.find("graph");
 			if(pos != std::string::npos) {
@@ -678,16 +674,16 @@ bool DanaeLoadLevel(const res::path & file, bool loadEntities) {
 			
 			// DANAE_LS_VLIGHTING
 			free(LastLoadedLightning);
-			u32 * ll = LastLoadedLightning = (u32 *)malloc(sizeof(u32) * bcount);
+			ColorBGRA * ll = LastLoadedLightning = (ColorBGRA *)malloc(sizeof(ColorBGRA) * bcount);
 			
 			if(dlh.version > 1.001f) {
-				std::copy((u32*)(dat + pos), (u32*)(dat + pos) + bcount, LastLoadedLightning);
+				std::transform((u32*)(dat + pos), (u32*)(dat + pos) + bcount, LastLoadedLightning, savedColorConversion);
 				pos += sizeof(u32) * bcount;
 			} else {
 				while(bcount) {
 					const DANAE_LS_VLIGHTING * dlv = reinterpret_cast<const DANAE_LS_VLIGHTING *>(dat + pos);
 					pos += sizeof(DANAE_LS_VLIGHTING);
-					*ll = 0xff000000L | ((dlv->r & 255) << 16) | ((dlv->g & 255) << 8) | (dlv->b & 255);
+					*ll = Color((dlv->r & 255), (dlv->g & 255), (dlv->b & 255), 255).toBGRA();
 					ll++;
 					bcount--;
 				}
@@ -943,15 +939,15 @@ bool DanaeLoadLevel(const res::path & file, bool loadEntities) {
 	
 	//DANAE_LS_VLIGHTING
 	free(LastLoadedLightning);
-	u32 * ll = LastLoadedLightning = (u32 *)malloc(sizeof(u32) * bcount);
+	ColorBGRA * ll = LastLoadedLightning = (ColorBGRA *)malloc(sizeof(ColorBGRA) * bcount);
 	if(dlh.version > 1.001f) {
-		std::copy((u32*)(dat + pos), (u32*)(dat + pos) + bcount, LastLoadedLightning);
+		std::transform((u32*)(dat + pos), (u32*)(dat + pos) + bcount, LastLoadedLightning, savedColorConversion);
 		pos += sizeof(u32) * bcount;
 	} else {
 		while(bcount) {
 			const DANAE_LS_VLIGHTING * dlv = reinterpret_cast<const DANAE_LS_VLIGHTING *>(dat + pos);
 			pos += sizeof(DANAE_LS_VLIGHTING);
-			*ll = 0xff000000L | ((dlv->r & 255) << 16) | ((dlv->g & 255) << 8) | (dlv->b & 255);
+			*ll = Color((dlv->r & 255), (dlv->g & 255), (dlv->b & 255), 255).toBGRA();
 			ll++;
 			bcount--;
 		}
@@ -1062,10 +1058,10 @@ void RestoreLastLoadedLightning(EERIE_BACKGROUND & eb)
 			long nbvert = (ep.type & POLY_QUAD) ? 4 : 3;
 			
 			for(long k = 0; k < nbvert; k++) {
-				u32 dc = LastLoadedLightning[pos];
+				Color dc = Color::fromBGRA(LastLoadedLightning[pos]);
 				pos++;
-				dc = dc | 0xFF000000;
-				ep.tv[k].color = ep.v[k].color = dc;
+				dc.a = 255;
+				ep.tv[k].color = ep.v[k].color = dc.toRGB();
 				bcount--;
 				
 				if(bcount <= 0)

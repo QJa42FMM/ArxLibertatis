@@ -63,9 +63,6 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 #include "scene/Object.h"
 #include "scene/Interactive.h"
 
-using std::min;
-using std::max;
-
 extern ParticleManager * pParticleManager;
 
 CCreateField::CCreateField()
@@ -115,28 +112,28 @@ void CCreateField::RenderQuad(const Vec3f & p1, const Vec3f & p2, const Vec3f & 
 
 		float patchsize = 0.005f;
 
-		v[0].x += (float) sin(radians((v[0].x - eSrc.x) * patchsize + fwrap)) * 5;
-		v[0].y += (float) sin(radians((v[0].y - eSrc.y) * patchsize + fwrap)) * 5;
-		v[0].z += (float) sin(radians((v[0].z - eSrc.z) * patchsize + fwrap)) * 5;
-		v[1].x += (float) sin(radians((v[1].x - eSrc.x) * patchsize + fwrap)) * 5;
-		v[1].y += (float) sin(radians((v[1].y - eSrc.y) * patchsize + fwrap)) * 5;
-		v[1].z += (float) sin(radians((v[1].z - eSrc.z) * patchsize + fwrap)) * 5;
-		v[2].x += (float) sin(radians((v[2].x - eSrc.x) * patchsize + fwrap)) * 5;
-		v[2].y += (float) sin(radians((v[2].y - eSrc.y) * patchsize + fwrap)) * 5;
-		v[2].z += (float) sin(radians((v[2].z - eSrc.z) * patchsize + fwrap)) * 5;
-		v[3].x += (float) sin(radians((v[3].x - eSrc.x) * patchsize + fwrap)) * 5;
-		v[3].y += (float) sin(radians((v[3].y - eSrc.y) * patchsize + fwrap)) * 5;
-		v[3].z += (float) sin(radians((v[3].z - eSrc.z) * patchsize + fwrap)) * 5;
-		v[4].x += (float) sin(radians((v[4].x - eSrc.x) * patchsize + fwrap)) * 5;
-		v[4].y += (float) sin(radians((v[4].y - eSrc.y) * patchsize + fwrap)) * 5;
-		v[4].z += (float) sin(radians((v[4].z - eSrc.z) * patchsize + fwrap)) * 5;
+		v[0].x += glm::sin(glm::radians((v[0].x - eSrc.x) * patchsize + fwrap)) * 5;
+		v[0].y += glm::sin(glm::radians((v[0].y - eSrc.y) * patchsize + fwrap)) * 5;
+		v[0].z += glm::sin(glm::radians((v[0].z - eSrc.z) * patchsize + fwrap)) * 5;
+		v[1].x += glm::sin(glm::radians((v[1].x - eSrc.x) * patchsize + fwrap)) * 5;
+		v[1].y += glm::sin(glm::radians((v[1].y - eSrc.y) * patchsize + fwrap)) * 5;
+		v[1].z += glm::sin(glm::radians((v[1].z - eSrc.z) * patchsize + fwrap)) * 5;
+		v[2].x += glm::sin(glm::radians((v[2].x - eSrc.x) * patchsize + fwrap)) * 5;
+		v[2].y += glm::sin(glm::radians((v[2].y - eSrc.y) * patchsize + fwrap)) * 5;
+		v[2].z += glm::sin(glm::radians((v[2].z - eSrc.z) * patchsize + fwrap)) * 5;
+		v[3].x += glm::sin(glm::radians((v[3].x - eSrc.x) * patchsize + fwrap)) * 5;
+		v[3].y += glm::sin(glm::radians((v[3].y - eSrc.y) * patchsize + fwrap)) * 5;
+		v[3].z += glm::sin(glm::radians((v[3].z - eSrc.z) * patchsize + fwrap)) * 5;
+		v[4].x += glm::sin(glm::radians((v[4].x - eSrc.x) * patchsize + fwrap)) * 5;
+		v[4].y += glm::sin(glm::radians((v[4].y - eSrc.y) * patchsize + fwrap)) * 5;
+		v[4].z += glm::sin(glm::radians((v[4].z - eSrc.z) * patchsize + fwrap)) * 5;
 
 		RenderQuad(p1, v[4], v[0], v[1], rec, norm, mat);
 		RenderQuad(v[4], p2, v[2], v[0], rec, norm, mat);
 		RenderQuad(v[0], v[2], p3, v[3], rec, norm, mat);
 		RenderQuad(v[1], v[0], v[3], p4, rec, norm, mat);
 	} else if(rec == 3) {
-		float zab = (float) sin(radians(ft));
+		float zab = glm::sin(glm::radians(ft));
 		
 		TexturedQuad q;
 		
@@ -149,8 +146,8 @@ void CCreateField::RenderQuad(const Vec3f & p1, const Vec3f & p2, const Vec3f & 
 		q.v[3].uv.x = 0 + zab;
 		q.v[3].uv.y = 1 + zab;
 
-		q.v[1].color = q.v[2].color = Color3f(falpha * .3f + rnd() * .025f, 0.f, falpha * .5f + rnd() * .025f).toBGR();
-		q.v[0].color = q.v[3].color = Color3f(falpha * .3f + rnd() * .025f, 0.f, falpha * .5f + rnd() * .025f).toBGR();
+		q.v[1].color = q.v[2].color = Color3f(falpha * .3f + rnd() * .025f, 0.f, falpha * .5f + rnd() * .025f).toRGB();
+		q.v[0].color = q.v[3].color = Color3f(falpha * .3f + rnd() * .025f, 0.f, falpha * .5f + rnd() * .025f).toRGB();
 	
 		q.v[0].p = p1;
 		q.v[1].p = p2;
@@ -203,11 +200,11 @@ void CCreateField::Render()
 		}
 	}
 
-	ysize = min(1.0f, ulCurrentTime * 0.001f);
+	ysize = std::min(1.0f, ulCurrentTime * 0.001f);
 
 	if(ysize >= 1.0f) {
-		size = min(1.0f, (ulCurrentTime - 1000) * 0.001f);
-		size = max(size, 0.1f);
+		size = std::min(1.0f, (ulCurrentTime - 1000) * 0.001f);
+		size = std::max(size, 0.1f);
 	}
 
 	// ondulation
@@ -217,7 +214,7 @@ void CCreateField::Render()
 		ft = 0.0f;
 	}
 
-	falpha = (float) sin(radians(fglow)) + rnd() * 0.2f;
+	falpha = glm::sin(glm::radians(fglow)) + rnd() * 0.2f;
 
 	if(falpha > 1.0f)
 		falpha = 1.0f;
@@ -718,7 +715,7 @@ void CRiseDead::RenderFissure()
 	//-------------------------------------------------------------------------
 	// rendu de la fissure
 	mat.setBlendType(RenderMaterial::Opaque);
-	vr[0].color = vr[1].color = vr[2].color = vr[3].color = Color::black.toBGR();
+	vr[0].color = vr[1].color = vr[2].color = vr[3].color = Color::black.toRGB();
 
 	if(bIntro) {
 		for(i = 0; i < std::min(end, (int)fSizeIntro); i++) {
@@ -743,8 +740,8 @@ void CRiseDead::RenderFissure()
 	//-------------------------------------------------------------------------
 	// rendu de la bordure
 	mat.setBlendType(RenderMaterial::Additive);
-	vr[0].color = vr[1].color = Color::black.toBGR();
-	vr[2].color = vr[3].color = Color3f(fColorBorder[0], fColorBorder[1], fColorBorder[2]).toBGR();
+	vr[0].color = vr[1].color = Color::black.toRGB();
+	vr[2].color = vr[3].color = Color3f(fColorBorder[0], fColorBorder[1], fColorBorder[2]).toRGB();
 
 	for(i = 0; i < std::min(end, (int)fSizeIntro); i++) {
 		vt[2] = va[i] - (va[i] - eSrc) * 0.2f;
@@ -781,8 +778,8 @@ void CRiseDead::RenderFissure()
 	target.z = eSrc.z ;
 
 	EE_RTP(vt[1], &vr[0]);
-	vr[0].color = vr[1].color = Color3f(fColorRays1[0], fColorRays1[1], fColorRays1[2]).toBGR();
-	vr[2].color = vr[3].color = Color3f(fColorRays2[0], fColorRays2[1], fColorRays2[2]).toBGR();
+	vr[0].color = vr[1].color = Color3f(fColorRays1[0], fColorRays1[1], fColorRays1[2]).toRGB();
+	vr[2].color = vr[3].color = Color3f(fColorRays2[0], fColorRays2[1], fColorRays2[2]).toRGB();
 
 	vr[0].uv.x = fTexWrap;
 	vr[0].uv.y = 1;
@@ -864,10 +861,10 @@ void CRiseDead::RenderFissure()
 			vt[3].y = va[i+1].y + (va[i+1].y - target.y) * 2;
 			vt[3].z = va[i+1].z ;
 
-			vr[0].color = (Color3f(fColorRays1[0], fColorRays1[1], fColorRays1[2]) * tfRaysa[i]).toBGR();
-			vr[1].color = (Color3f(fColorRays1[0], fColorRays1[1], fColorRays1[2]) * tfRaysa[i + 1]).toBGR();
-			vr[2].color = (Color3f(fColorRays2[0], fColorRays2[1], fColorRays2[2]) * tfRaysa[i]).toBGR();
-			vr[3].color = (Color3f(fColorRays2[0], fColorRays2[1], fColorRays2[2]) * tfRaysa[i + 1]).toBGR();
+			vr[0].color = (Color3f(fColorRays1[0], fColorRays1[1], fColorRays1[2]) * tfRaysa[i]).toRGB();
+			vr[1].color = (Color3f(fColorRays1[0], fColorRays1[1], fColorRays1[2]) * tfRaysa[i + 1]).toRGB();
+			vr[2].color = (Color3f(fColorRays2[0], fColorRays2[1], fColorRays2[2]) * tfRaysa[i]).toRGB();
+			vr[3].color = (Color3f(fColorRays2[0], fColorRays2[1], fColorRays2[2]) * tfRaysa[i + 1]).toRGB();
 			
 			EE_RT(vt[0], vr[0].p);
 			EE_RT(vt[1], vr[1].p);
@@ -887,10 +884,10 @@ void CRiseDead::RenderFissure()
 			vt[3].y = vb[i].y + (vb[i].y - target.y) * 2;
 			vt[3].z = vb[i].z ;
 
-			vr[0].color = (Color3f(fColorRays1[0], fColorRays1[1], fColorRays1[2]) * tfRaysb[i]).toBGR();
-			vr[1].color = (Color3f(fColorRays1[0], fColorRays1[1], fColorRays1[2]) * tfRaysb[i + 1]).toBGR();
-			vr[2].color = (Color3f(fColorRays2[0], fColorRays2[1], fColorRays2[2]) * tfRaysb[i]).toBGR();
-			vr[3].color = (Color3f(fColorRays2[0], fColorRays2[1], fColorRays2[2]) * tfRaysb[i + 1]).toBGR();
+			vr[0].color = (Color3f(fColorRays1[0], fColorRays1[1], fColorRays1[2]) * tfRaysb[i]).toRGB();
+			vr[1].color = (Color3f(fColorRays1[0], fColorRays1[1], fColorRays1[2]) * tfRaysb[i + 1]).toRGB();
+			vr[2].color = (Color3f(fColorRays2[0], fColorRays2[1], fColorRays2[2]) * tfRaysb[i]).toRGB();
+			vr[3].color = (Color3f(fColorRays2[0], fColorRays2[1], fColorRays2[2]) * tfRaysb[i + 1]).toRGB();
 
 			EE_RT(vt[0], vr[0].p);
 			EE_RT(vt[1], vr[1].p);

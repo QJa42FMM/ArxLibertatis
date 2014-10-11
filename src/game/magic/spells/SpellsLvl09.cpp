@@ -51,8 +51,8 @@ void SummonCreatureSpell::GetTargetAndBeta(Vec3f & target, float & beta)
 		displace = (entities[m_caster]->ioflags & IO_NPC) == IO_NPC;
 	}
 	if(displace) {
-		target.x -= std::sin(radians(MAKEANGLE(beta))) * 300.f;
-		target.z += std::cos(radians(MAKEANGLE(beta))) * 300.f;
+		target.x -= std::sin(glm::radians(MAKEANGLE(beta))) * 300.f;
+		target.z += std::cos(glm::radians(MAKEANGLE(beta))) * 300.f;
 	}
 }
 
@@ -191,7 +191,7 @@ void SummonCreatureSpell::Update(float timeDelta)
 				phys.origin = m_targetPos;
 				float anything = CheckAnythingInCylinder(phys, NULL, CFLAG_JUST_TEST);
 
-				if(EEfabs(anything) < 30) {
+				if(glm::abs(anything) < 30) {
 				
 				long tokeep;
 				res::path cls;

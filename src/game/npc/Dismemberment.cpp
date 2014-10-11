@@ -65,7 +65,7 @@ void ARX_NPC_SpawnMember(Entity * ioo, long num) {
 	if(!from || num < 0 || (size_t)num >= from->selections.size())
 		return;
 
-	EERIE_3DOBJ * nouvo = new EERIE_3DOBJ(); 
+	EERIE_3DOBJ * nouvo = new EERIE_3DOBJ;
 
 	if(!nouvo)
 		return;
@@ -168,7 +168,7 @@ void ARX_NPC_SpawnMember(Entity * ioo, long num) {
 	
 	for(size_t k = 0; k < nouvo->vertexlist.size(); k++) {
 		nouvo->vertexlist[k].vert.p = nouvo->vertexlist[k].v -= nouvo->point0;
-		nouvo->vertexlist[k].vert.color = 0xFFFFFFFF;
+		nouvo->vertexlist[k].vert.color = Color(255, 255, 255, 255).toRGBA();
 	}
 	
 	nouvo->point0 = Vec3f_ZERO;
@@ -231,7 +231,7 @@ void ARX_NPC_SpawnMember(Entity * ioo, long num) {
 	nouvo->linked.clear();
 	nouvo->originaltextures = NULL;
 	
-	Entity * io = new Entity("noname");
+	Entity * io = new Entity("noname", EntityInstance(0));
 	
 	io->_itemdata = (IO_ITEMDATA *)malloc(sizeof(IO_ITEMDATA));
 	
@@ -271,9 +271,9 @@ void ARX_NPC_SpawnMember(Entity * ioo, long num) {
 	io->stopped = 1;
 	
 	Vec3f vector;
-	vector.x = -std::sin(radians(io->angle.getPitch()));
-	vector.y = std::sin(radians(io->angle.getYaw())) * 2.f;
-	vector.z = std::cos(radians(io->angle.getPitch()));
+	vector.x = -std::sin(glm::radians(io->angle.getPitch()));
+	vector.y = std::sin(glm::radians(io->angle.getYaw())) * 2.f;
+	vector.z = std::cos(glm::radians(io->angle.getPitch()));
 	vector = glm::normalize(vector);
 	io->rubber = 0.6f;
 	

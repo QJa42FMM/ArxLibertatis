@@ -46,8 +46,7 @@ struct FLARES {
 	short flags;
 	TexturedVertex v;
 	TexturedVertex tv;
-	float x;
-	float y;
+	Vec2f pos;
 	float tolive;
 	Color3f rgb;
 	float size;
@@ -169,8 +168,8 @@ void AddFlare(const Vec2s & pos, float sm, short typ, Entity * io, bool bookDraw
 		fl->flags = 0;
 	}
 
-	fl->x = float(pos.x) - rnd() * 4.f;
-	fl->y = float(pos.y) - rnd() * 4.f - 50.f;
+	fl->pos.x = float(pos.x) - rnd() * 4.f;
+	fl->pos.y = float(pos.y) - rnd() * 4.f - 50.f;
 	fl->tv.rhw = fl->v.rhw = 1.f;
 
 	if(!bookDraw) {
@@ -183,12 +182,12 @@ void AddFlare(const Vec2s & pos, float sm, short typ, Entity * io, bool bookDraw
 		EE_RTP(fl->tv.p, &fl->v);
 		fl->v.p += ka.orgTrans.pos;
 
-		float vx = -(fl->x - subj.center.x) * 0.2173913f;
-		float vy = (fl->y - subj.center.y) * 0.1515151515151515f;
+		float vx = -(fl->pos.x - subj.center.x) * 0.2173913f;
+		float vy = (fl->pos.y - subj.center.y) * 0.1515151515151515f;
 		if(io) {
-			fl->v.p.x = io->pos.x - std::sin(radians(MAKEANGLE(io->angle.getPitch() + vx))) * 100.f;
-			fl->v.p.y = io->pos.y + std::sin(radians(MAKEANGLE(io->angle.getYaw() + vy))) * 100.f - 150.f;
-			fl->v.p.z = io->pos.z + std::cos(radians(MAKEANGLE(io->angle.getPitch() + vx))) * 100.f;
+			fl->v.p.x = io->pos.x - std::sin(glm::radians(MAKEANGLE(io->angle.getPitch() + vx))) * 100.f;
+			fl->v.p.y = io->pos.y + std::sin(glm::radians(MAKEANGLE(io->angle.getYaw() + vy))) * 100.f - 150.f;
+			fl->v.p.z = io->pos.z + std::cos(glm::radians(MAKEANGLE(io->angle.getPitch() + vx))) * 100.f;
 		} else {
 			fl->v.p.x = float(pos.x - (g_size.width() / 2)) * 150.f / float(g_size.width());
 			fl->v.p.y = float(pos.y - (g_size.height() / 2)) * 150.f / float(g_size.width());
@@ -206,7 +205,7 @@ void AddFlare(const Vec2s & pos, float sm, short typ, Entity * io, bool bookDraw
 		SetActiveCamera(oldcam);
 		PrepareCamera(oldcam, g_size);
 	} else {
-		fl->tv.p = Vec3f(fl->x, fl->y, 0.001f);
+		fl->tv.p = Vec3f(fl->pos.x, fl->pos.y, 0.001f);
 	}
 
 	switch(PIPOrgb) {
@@ -308,9 +307,9 @@ void FlareLine(const Vec2s & pos0, const Vec2s & pos1, Entity * io)
 	float y1 = pos1.y;
 
 	float dx = (x1 - x0);
-	float adx = EEfabs(dx);
+	float adx = glm::abs(dx);
 	float dy = (y1 - y0);
-	float ady = EEfabs(dy);
+	float ady = glm::abs(dy);
 
 	if(adx > ady) {
 		if(x0 > x1) {
@@ -441,7 +440,7 @@ void ARX_MAGICAL_FLARES_Update() {
 				s = flare.size;
 			}
 
-			if(flare.tolive <= 0.f || flare.y < -64.f || s < 3.f) {
+			if(flare.tolive <= 0.f || flare.pos.y < -64.f || s < 3.f) {
 
 				if(flare.io && ValidIOAddress(flare.io)) {
 					flare.io->flarecount--;
@@ -460,7 +459,7 @@ void ARX_MAGICAL_FLARES_Update() {
 			}
 
 			Color3f c = flare.rgb * z;
-			flare.tv.color = c.toBGR();
+			flare.tv.color = c.toRGB();
 			flare.v.p = flare.tv.p;
 
 			light->rgb = componentwise_max(light->rgb, c);
@@ -475,11 +474,10 @@ void ARX_MAGICAL_FLARES_Update() {
 			
 			if(flare.bDrawBitmap) {
 				s *= 2.f;
-				EERIEAddBitmap(mat, flare.v.p.x, flare.v.p.y, s, s, flare.v.p.z,
-								surf, Color::fromBGRA(flare.tv.color));
+				EERIEAddBitmap(mat, flare.v.p, s, s, surf, Color::fromRGBA(flare.tv.color));
 			} else {
 				EERIEAddSprite(mat, flare.v.p, s * 0.025f + 1.f,
-				               Color::fromBGRA(flare.tv.color), 2.f);
+				               Color::fromRGBA(flare.tv.color), 2.f);
 			}
 
 		}
