@@ -25,6 +25,11 @@
 
 struct IniKey {
 	
+	IniKey(const std::string & _name, const std::string & _value)
+		: name(_name)
+		, value(_value)
+	{}
+	
 	inline const std::string & getName() const { return name; }
 	inline const std::string & getValue() const { return value; }
 	
@@ -32,6 +37,7 @@ struct IniKey {
 	
 	float getValue(float defaultValue) const;
 	
+	//! Support either boolean specified as strings (true, false) or 0, 1
 	bool getValue(bool defaultValue) const;
 	
 private:

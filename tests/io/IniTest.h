@@ -17,39 +17,28 @@
  * along with Arx Libertatis.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ARX_TESTS_UTIL_STRINGTEST_H
-#define ARX_TESTS_UTIL_STRINGTEST_H
+#ifndef ARX_TESTS_IO_INITEST_H
+#define ARX_TESTS_IO_INITEST_H
 
 #include <cppunit/TestCase.h>
 #include <cppunit/extensions/HelperMacros.h>
 
-class StringTest : public CppUnit::TestFixture {
+class IniTest : public CppUnit::TestFixture {
 	
-	CPPUNIT_TEST_SUITE(StringTest);	
-	CPPUNIT_TEST(stringStoreEmptyTest);
-	CPPUNIT_TEST(stringStoreFittingTest);
-	CPPUNIT_TEST(stringStoreTruncatedNullTest);
-	CPPUNIT_TEST(stringStoreOverflowTest);
-	
-	CPPUNIT_TEST(stringStoreTerminatedEmptyTest);
-	CPPUNIT_TEST(stringStoreTerminatedFittingTest);
-	CPPUNIT_TEST(stringStoreTerminatedOverflowTest);
-	
+	CPPUNIT_TEST_SUITE(IniTest);
+	CPPUNIT_TEST(intTest);
+	CPPUNIT_TEST(floatTest);
+	CPPUNIT_TEST(boolTest);
 	CPPUNIT_TEST_SUITE_END();
 	
 public:
-	StringTest()
+	IniTest()
 		: CppUnit::TestFixture()
 	{}
 	
-	void stringStoreEmptyTest();
-	void stringStoreFittingTest();
-	void stringStoreTruncatedNullTest();
-	void stringStoreOverflowTest();
-	
-	void stringStoreTerminatedEmptyTest();
-	void stringStoreTerminatedFittingTest();
-	void stringStoreTerminatedOverflowTest();
+	void intTest();
+	void floatTest();
+	void boolTest();
 };
 
-#endif // ARX_TESTS_UTIL_STRINGTEST_H
+#endif // ARX_TESTS_IO_INITEST_H

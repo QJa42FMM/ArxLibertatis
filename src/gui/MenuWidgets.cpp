@@ -502,7 +502,7 @@ Widget::Widget(MENUSTATE _ms)
 	, pRef(NULL)
 	, rZone(0, 0, 0, 0)
 	, iID(-1)
-	, lData(0)
+	, m_savegame(0)
 	, enabled(true)
 	, bCheck(true)
 {
@@ -699,12 +699,6 @@ bool TextWidget::OnMouseClick() {
 				}
 			}
 			break;
-		case BUTTON_MENUMAIN_LOADQUEST: {
-			}break;
-		case BUTTON_MENUMAIN_SAVEQUEST: {
-			}break;
-		case BUTTON_MENUMAIN_MULTIPLAYER: {
-			}break;
 		case BUTTON_MENUMAIN_OPTIONS: {
 			}break;
 		case BUTTON_MENUMAIN_CREDITS: {
@@ -732,7 +726,7 @@ bool TextWidget::OnMouseClick() {
 				CWindowMenuConsole * p = pWindowMenu->vWindowConsoleElement[i];
 				
 				if(p->eMenuState == EDIT_QUEST_LOAD) {						
-					p->lData = lData;
+					p->m_savegame = m_savegame;
 					
 					for(size_t j = 0; j < p->MenuAllZone.vMenuZone.size(); j++) {
 						Widget *cz = p->MenuAllZone.vMenuZone[j];
@@ -756,7 +750,7 @@ bool TextWidget::OnMouseClick() {
 					CWindowMenuConsole *p = pWindowMenu->vWindowConsoleElement[i];
 					
 					if(p->eMenuState == EDIT_QUEST_LOAD) {
-						p->lData = lData;
+						p->m_savegame = m_savegame;
 						
 						for(size_t j = 0; j < p->MenuAllZone.vMenuZone.size(); j++) {
 							Widget *cz = p->MenuAllZone.vMenuZone[j];
@@ -778,11 +772,11 @@ bool TextWidget::OnMouseClick() {
 		
 					if(p->eMenuState == EDIT_QUEST_LOAD) {
 						
-						lData = p->lData;
-						if(lData != -1) {
+						m_savegame = p->m_savegame;
+						if(m_savegame != SavegameHandle::Invalid) {
 							eMenuState = MAIN;
 							GRenderer->Clear(Renderer::DepthBuffer);
-							ARXMenu_LoadQuest(lData);
+							ARXMenu_LoadQuest(m_savegame);
 							bNoMenu=true;
 							if(pTextManage) {
 								pTextManage->Clear();
@@ -812,12 +806,12 @@ bool TextWidget::OnMouseClick() {
 				CWindowMenuConsole *p = pWindowMenu->vWindowConsoleElement[i];
 				
 				if(p->eMenuState == EDIT_QUEST_SAVE_CONFIRM) {
-					p->lData = lData;
+					p->m_savegame = m_savegame;
 					TextWidget * me = (TextWidget *) p->MenuAllZone.vMenuZone[1];
 					
 					if(me) {
 						eMenuState = MAIN;
-						ARXMenu_SaveQuest(me->lpszText, me->lData);
+						ARXMenu_SaveQuest(me->lpszText, me->m_savegame);
 						break;
 					}
 				}
@@ -831,11 +825,11 @@ bool TextWidget::OnMouseClick() {
 				for(size_t i = 0 ; i < pWindowMenu->vWindowConsoleElement.size(); i++) {
 					CWindowMenuConsole *p = pWindowMenu->vWindowConsoleElement[i];
 					if(p->eMenuState == EDIT_QUEST_LOAD) {
-						lData = p->lData;
-						if(lData != -1) {
+						m_savegame = p->m_savegame;
+						if(m_savegame != SavegameHandle::Invalid) {
 							eMenuState = EDIT_QUEST_LOAD;
 							mainMenu->bReInitAll = true;
-							savegames.remove(lData);
+							savegames.remove(m_savegame);
 							break;
 						}
 					}
@@ -854,12 +848,12 @@ bool TextWidget::OnMouseClick() {
 				for(size_t i = 0 ; i < pWindowMenu->vWindowConsoleElement.size(); i++) {
 					CWindowMenuConsole *p = pWindowMenu->vWindowConsoleElement[i];
 					if(p->eMenuState == EDIT_QUEST_SAVE_CONFIRM) {
-						p->lData = lData;
+						p->m_savegame = m_savegame;
 						TextWidget * me = (TextWidget *) p->MenuAllZone.vMenuZone[1];
 						if(me) {
 							eMenuState = EDIT_QUEST_SAVE;
 							mainMenu->bReInitAll = true;
-							savegames.remove(me->lData);
+							savegames.remove(me->m_savegame);
 							break;
 						}
 					}
@@ -986,14 +980,14 @@ bool TextWidget::OnMouseClick() {
 			CWindowMenuConsole *p = pWindowMenu->vWindowConsoleElement[i];
 
 			if(p->eMenuState == eMenuState) {
-				p->lData = lData;
+				p->m_savegame = m_savegame;
 				TextWidget * me = (TextWidget *) p->MenuAllZone.vMenuZone[1];
 
 				if(me) {
-					me->lData = lData;
+					me->m_savegame = m_savegame;
 					
-					if(lData != -1) {
-						me->SetText(savegames[lData].name);
+					if(m_savegame != SavegameHandle::Invalid) {
+						me->SetText(savegames[m_savegame].name);
 						pDeleteButton->lColor = pDeleteButton->lOldColor;
 						pDeleteButton->SetCheckOn();
 					} else {
@@ -1064,12 +1058,12 @@ void TextWidget::RenderMouseOver() {
 		case BUTTON_MENUEDITQUEST_LOAD:
 		case BUTTON_MENUEDITQUEST_SAVEINFO: {
 			
-			if(lData == -1) {
+			if(m_savegame == SavegameHandle::Invalid) {
 				pTextureLoadRender = NULL;
 				break;
 			}
 			
-			const res::path & image = savegames[lData].thumbnail;
+			const res::path & image = savegames[m_savegame].thumbnail;
 			if(!image.empty()) {
 				TextureContainer * t = TextureContainer::LoadUI(image, TextureContainer::NoColorKey);
 				if(t != pTextureLoad) {
@@ -1297,63 +1291,33 @@ void CMenuAllZone::DrawZone()
 {
 	if(g_debugInfo != InfoPanelGuiDebug)
 		return;
-	
-	GRenderer->SetBlendFunc(Renderer::BlendOne, Renderer::BlendOne);
-	GRenderer->SetRenderState(Renderer::AlphaBlending, true);
-	GRenderer->ResetTexture(0);
 
 	BOOST_FOREACH(Widget * zone, vMenuZone) {
 		drawLineRectangle(Rectf(zone->rZone), 0.f, Color::red);
 	}
-
-	GRenderer->SetRenderState(Renderer::AlphaBlending, false);
 }
+
 
 CheckboxWidget::CheckboxWidget(TextWidget *_pText)
 	:Widget(NOP)
 {
-	TextureContainer *_pTex1 = TextureContainer::Load("graph/interface/menus/menu_checkbox_off");
-	TextureContainer *_pTex2 = TextureContainer::Load("graph/interface/menus/menu_checkbox_on");
-	arx_assert(_pTex1);
-	arx_assert(_pTex2);
-	arx_assert(_pTex1->size() == _pTex2->size());
+	pRef = this; // TODO remove this
 	
-	vTex.push_back(_pTex1);
-	vTex.push_back(_pTex2);
+	arx_assert(_pText);
 	
-	int _iTaille = _pTex1->m_dwWidth;
+	m_textureOff = TextureContainer::Load("graph/interface/menus/menu_checkbox_off");
+	m_textureOn = TextureContainer::Load("graph/interface/menus/menu_checkbox_on");
+	arx_assert(m_textureOff);
+	arx_assert(m_textureOn);
+	arx_assert(m_textureOff->size() == m_textureOn->size());
 	
 	iID = -1;
 	iState    = 0;
 	iOldState = -1;
-	m_pos = Vec2i(0, 0);
-
-	iTaille = _iTaille;
 	pText    = _pText;
+	rZone = _pText->rZone;
 	
-	_iTaille = std::max(_iTaille, (int)RATIO_X(_pTex1->m_dwWidth));
-	_iTaille = std::max(_iTaille, (int)RATIO_Y(_pTex1->m_dwHeight));
-	
-	Vec2i textSize(0,0);
-
-	if(pText) {
-		textSize = pText->pFont->getTextSize(pText->lpszText); 
-
-		_iTaille = std::max<int>(_iTaille, textSize.y);
-		textSize.x += pText->rZone.left;
-		pText->Move(m_pos + Vec2i(0, (_iTaille - textSize.y) / 2));
-	}
-
-	rZone.left = m_pos.x;
-	rZone.top = m_pos.y;
-	rZone.right = m_pos.x + _iTaille + textSize.x;
-	rZone.bottom = m_pos.y + std::max<int>(_iTaille, textSize.y);
-	pRef=this;
-	
-	float rZoneR = RATIO_X(200.f) + RATIO_X(_pTex1->m_dwWidth) + (RATIO_X(12*9) - RATIO_X(_pTex1->m_dwWidth))*0.5f;
-	rZone.right = rZoneR;
-	
-	Move(m_pos);
+	rZone.right = rZone.left + RATIO_X(245.f);
 }
 
 CheckboxWidget::~CheckboxWidget() {
@@ -1363,10 +1327,7 @@ CheckboxWidget::~CheckboxWidget() {
 void CheckboxWidget::Move(const Vec2i & offset) {
 	
 	Widget::Move(offset);
-	
-	if(pText) {
-		pText->Move(offset);
-	}
+	pText->Move(offset);
 }
 
 bool CheckboxWidget::OnMouseClick() {
@@ -1379,7 +1340,7 @@ bool CheckboxWidget::OnMouseClick() {
 	//NB : It seems that iState cannot be negative (used as tabular index / used as bool) but need further approval
 	arx_assert(iState >= 0);
 
-	if((size_t)iState >= vTex.size()) {
+	if((size_t)iState >= 2) {
 		iState = 0;
 	}
 
@@ -1452,35 +1413,31 @@ void CheckboxWidget::Update(int /*_iDTime*/)
 {
 }
 
+void CheckboxWidget::renderCommon() {
+	
+	GRenderer->SetRenderState(Renderer::AlphaBlending, true);
+	GRenderer->SetBlendFunc(Renderer::BlendOne, Renderer::BlendOne);
+	
+	Rectf checkboxRect;
+	checkboxRect.top = rZone.top;
+	checkboxRect.left = rZone.right - rZone.height();
+	checkboxRect.bottom = rZone.bottom;
+	checkboxRect.right = rZone.right;
+	
+	TextureContainer *pTex = (iState == 0) ? m_textureOff : m_textureOn;
+	Color color = (bCheck) ? Color::white : Color(63, 63, 63, 255);
+	
+	EERIEDrawBitmap2(checkboxRect, 0.f, pTex, color);
+}
+
 void CheckboxWidget::Render() {
 
 	if(bNoMenu)
 		return;
-
-	GRenderer->SetRenderState(Renderer::AlphaBlending, true);
-	GRenderer->SetBlendFunc(Renderer::BlendOne, Renderer::BlendOne);
-
-	if(!vTex.empty()) {
-		TextureContainer *pTex = vTex[iState];
-		
-		Color color = (bCheck) ? Color::white : Color(63, 63, 63, 255);
-		
-		float iY = 0;
-		{
-			iY = static_cast<float>(rZone.bottom - rZone.top);
-			iY -= iTaille;
-			iY = rZone.top + iY*0.5f;
-		}
-		
-		//carre
-		EERIEDrawBitmap2(Rectf(Vec2f(rZone.right - iTaille, iY), RATIO_X(iTaille), RATIO_Y(iTaille)), 0.f, pTex, color);
-	}
-
-	if(pText)
-		pText->Render();
-
-	//DEBUG
-	GRenderer->SetRenderState(Renderer::AlphaBlending, false);
+	
+	renderCommon();
+	
+	pText->Render();
 }
 
 void CheckboxWidget::RenderMouseOver() {
@@ -1490,30 +1447,11 @@ void CheckboxWidget::RenderMouseOver() {
 
 	pMenuCursor->SetMouseOver();
 
-	GRenderer->SetRenderState(Renderer::AlphaBlending, true);
-	GRenderer->SetBlendFunc(Renderer::BlendOne, Renderer::BlendOne);
-
-	TextureContainer *pTex = vTex[iState];
-
-	if(pTex) GRenderer->SetTexture(0, pTex);
-	else GRenderer->ResetTexture(0);
+	renderCommon();
 	
-	float iY = 0;
-	iY = static_cast<float>(rZone.bottom - rZone.top);
-	iY -= iTaille;
-	iY = rZone.top + iY*0.5f;
-
-	//carre
-
-	EERIEDrawBitmap2(Rectf(Vec2f(rZone.right - iTaille, iY), RATIO_X(iTaille), RATIO_Y(iTaille)), 0.f, pTex, Color::white); 
-
-	//tick
-	if (pText)
-		pText->RenderMouseOver();
-
-	//DEBUG
-	GRenderer->SetRenderState(Renderer::AlphaBlending, false);
+	pText->RenderMouseOver();
 }
+
 
 CWindowMenu::CWindowMenu(Vec2i pos, Vec2i size)
 {
@@ -1595,10 +1533,10 @@ MENUSTATE CWindowMenu::Render() {
 }
 
 CWindowMenuConsole::CWindowMenuConsole(Vec2i pos, Vec2i size, MENUSTATE _eMenuState)
-	: iInterligne(10)
+	: m_rowSpacing(10)
+	, m_savegame(0)
 	, pZoneClick(NULL)
 	, bEdit(false)
-	, lData(0)
 	, bMouseAttack(false)
 	, m_textCursorCurrentTime(0.f)
 {
@@ -1641,7 +1579,7 @@ void CWindowMenuConsole::AddMenuCenter(Widget * element, bool centerX) {
 	for(size_t iJ = 0; iJ < MenuAllZone.GetNbZone(); iJ++) {
 		Widget * pZone = MenuAllZone.GetZoneNum(iJ);
 
-		iDy += iInterligne;
+		iDy += m_rowSpacing;
 		iDy += pZone->rZone.bottom - pZone->rZone.top;
 	}
 
@@ -1659,7 +1597,7 @@ void CWindowMenuConsole::AddMenuCenter(Widget * element, bool centerX) {
 	
 	for(size_t iJ = 0; iJ < MenuAllZone.GetNbZone(); iJ++) {
 		Widget *pZone = MenuAllZone.GetZoneNum(iJ);
-		iDepY += (pZone->rZone.bottom - pZone->rZone.top) + iInterligne;
+		iDepY += (pZone->rZone.bottom - pZone->rZone.top) + m_rowSpacing;
 		
 		pZone->Move(Vec2i(0, dy));
 	}
@@ -2286,21 +2224,21 @@ void CWindowMenuConsole::ReInitActionKey()
 	}
 }
 
-CMenuPanel::CMenuPanel()
+HorizontalPanelWidget::HorizontalPanelWidget()
 	: Widget(NOP)
 {
 	vElement.clear();
 	pRef = this;
 }
 
-CMenuPanel::~CMenuPanel()
+HorizontalPanelWidget::~HorizontalPanelWidget()
 {
 	BOOST_FOREACH(Widget * e, vElement) {
 		delete e;
 	}
 }
 
-void CMenuPanel::Move(const Vec2i & offset)
+void HorizontalPanelWidget::Move(const Vec2i & offset)
 {
 	rZone.move(offset.x, offset.y);
 	
@@ -2310,7 +2248,7 @@ void CMenuPanel::Move(const Vec2i & offset)
 }
 
 // patch on ajoute à droite en ligne
-void CMenuPanel::AddElement(Widget* _pElem)
+void HorizontalPanelWidget::AddElement(Widget* _pElem)
 {
 	vElement.push_back(_pElem);
 
@@ -2329,7 +2267,7 @@ void CMenuPanel::AddElement(Widget* _pElem)
 }
 
 // patch on ajoute à droite en ligne
-void CMenuPanel::AddElementNoCenterIn(Widget* _pElem)
+void HorizontalPanelWidget::AddElementNoCenterIn(Widget* _pElem)
 {
 	vElement.push_back(_pElem);
 
@@ -2345,7 +2283,7 @@ void CMenuPanel::AddElementNoCenterIn(Widget* _pElem)
 	rZone.bottom = std::max(rZone.bottom, _pElem->rZone.bottom);
 }
 
-Widget* CMenuPanel::OnShortCut()
+Widget* HorizontalPanelWidget::OnShortCut()
 {
 	BOOST_FOREACH(Widget * e, vElement) {
 		if(e->OnShortCut())
@@ -2355,7 +2293,7 @@ Widget* CMenuPanel::OnShortCut()
 	return NULL;
 }
 
-void CMenuPanel::Update(int _iTime)
+void HorizontalPanelWidget::Update(int _iTime)
 {
 	rZone.right = rZone.left;
 	rZone.bottom = rZone.top;
@@ -2367,7 +2305,7 @@ void CMenuPanel::Update(int _iTime)
 	}
 }
 
-void CMenuPanel::Render() {
+void HorizontalPanelWidget::Render() {
 
 	if(bNoMenu)
 		return;
@@ -2377,7 +2315,7 @@ void CMenuPanel::Render() {
 	}
 }
 
-Widget * CMenuPanel::GetZoneWithID(int _iID)
+Widget * HorizontalPanelWidget::GetZoneWithID(int _iID)
 {
 	BOOST_FOREACH(Widget * e, vElement) {
 		if(Widget * pZone = e->GetZoneWithID(_iID))
@@ -2387,7 +2325,7 @@ Widget * CMenuPanel::GetZoneWithID(int _iID)
 	return NULL;
 }
 
-Widget * CMenuPanel::IsMouseOver(const Vec2s& mousePos) const {
+Widget * HorizontalPanelWidget::IsMouseOver(const Vec2s& mousePos) const {
 
 	if(rZone.contains(Vec2i(mousePos))) {
 		BOOST_FOREACH(Widget * e, vElement) {
@@ -2400,9 +2338,14 @@ Widget * CMenuPanel::IsMouseOver(const Vec2s& mousePos) const {
 	return NULL;
 }
 
-ButtonWidget::ButtonWidget(Vec2i pos, TextureContainer *_pTex)
+ButtonWidget::ButtonWidget(Vec2i pos, const char * texturePath)
 	: Widget(NOP)
 {
+	pRef = this; //TODO remove this
+	
+	m_texture = TextureContainer::Load(texturePath);
+	arx_assert(m_texture);
+	
 	iID = -1;
 
 	rZone.left=pos.x;
@@ -2410,16 +2353,10 @@ ButtonWidget::ButtonWidget(Vec2i pos, TextureContainer *_pTex)
 	rZone.right  = rZone.left ;
 	rZone.bottom = rZone.top ;
 	
-	pTex=_pTex;
-	
-	if(pTex) {
-		s32 rZoneR = rZone.left + RATIO_X(pTex->m_dwWidth);
-		s32 rZoneB = rZone.top + RATIO_Y(pTex->m_dwHeight);
-		rZone.right  = std::max(rZone.right,  rZoneR);
-		rZone.bottom = std::max(rZone.bottom, rZoneB);
-	}
-	
-	pRef=this;
+	s32 rZoneR = rZone.left + RATIO_X(m_texture->m_dwWidth);
+	s32 rZoneB = rZone.top + RATIO_Y(m_texture->m_dwHeight);
+	rZone.right  = std::max(rZone.right,  rZoneR);
+	rZone.bottom = std::max(rZone.bottom, rZoneB);
 }
 
 ButtonWidget::~ButtonWidget() {
@@ -2428,13 +2365,9 @@ ButtonWidget::~ButtonWidget() {
 void ButtonWidget::SetPos(Vec2i pos)
 {
 	Widget::SetPos(pos);
-
-	int iWidth = 0;
-	int iHeight = 0;
-	if(pTex) {
-		iWidth = RATIO_X(pTex->m_dwWidth);
-		iHeight = RATIO_Y(pTex->m_dwHeight);
-	}
+	
+	int iWidth = RATIO_X(m_texture->m_dwWidth);
+	int iHeight = RATIO_Y(m_texture->m_dwHeight);
 	
 	rZone.right = pos.x + iWidth;
 	rZone.bottom = pos.y + iHeight;
@@ -2459,13 +2392,9 @@ void ButtonWidget::Render() {
 
 	if(bNoMenu)
 		return;
-
-	//affichage de la texture
-	if(pTex) {
-		Color color = (bCheck) ? Color::white : Color(63, 63, 63, 255);
-		
-		EERIEDrawBitmap2(Rectf(rZone), 0, pTex, color);
-	}
+	
+	Color color = (bCheck) ? Color::white : Color(63, 63, 63, 255);
+	EERIEDrawBitmap2(Rectf(rZone), 0, m_texture, color);
 }
 
 void ButtonWidget::RenderMouseOver() {
@@ -2486,24 +2415,23 @@ void ButtonWidget::RenderMouseOver() {
 	}
 }
 
-CycleTextWidget::CycleTextWidget(int _iID, Vec2i pos)
+CycleTextWidget::CycleTextWidget(int _iID)
 	: Widget(NOP)
 {
 	iID = _iID;
-	TextureContainer *pTex = TextureContainer::Load("graph/interface/menus/menu_slider_button_left");
-	pLeftButton = new ButtonWidget(pos, pTex);
-	pTex = TextureContainer::Load("graph/interface/menus/menu_slider_button_right");
-	pRightButton = new ButtonWidget(pos, pTex);
+	
+	pLeftButton = new ButtonWidget(Vec2i_ZERO, "graph/interface/menus/menu_slider_button_left");
+	pRightButton = new ButtonWidget(Vec2i_ZERO, "graph/interface/menus/menu_slider_button_right");
 
 	vText.clear();
 
 	iPos = 0;
 	iOldPos = -1;
 
-	rZone.left   = pos.x;
-	rZone.top    = pos.y;
-	rZone.right  = pos.x + pLeftButton->rZone.width() + pRightButton->rZone.width();
-	rZone.bottom = pos.y + std::max(pLeftButton->rZone.height(), pRightButton->rZone.height());
+	rZone.left   = 0;
+	rZone.top    = 0;
+	rZone.right  = pLeftButton->rZone.width() + pRightButton->rZone.width();
+	rZone.bottom = std::max(pLeftButton->rZone.height(), pRightButton->rZone.height());
 
 	pRef = this;
 }
@@ -2724,17 +2652,15 @@ SliderWidget::SliderWidget(int _iID, Vec2i pos)
 	: Widget(NOP)
 {
 	iID = _iID;
-
-	TextureContainer *pTexL = TextureContainer::Load("graph/interface/menus/menu_slider_button_left");
-	TextureContainer *pTexR = TextureContainer::Load("graph/interface/menus/menu_slider_button_right");
-	pLeftButton = new ButtonWidget(pos, pTexL);
-	pRightButton = new ButtonWidget(pos, pTexR);
+	
+	pLeftButton = new ButtonWidget(pos, "graph/interface/menus/menu_slider_button_left");
+	pRightButton = new ButtonWidget(pos, "graph/interface/menus/menu_slider_button_right");
 	pTex1 = TextureContainer::Load("graph/interface/menus/menu_slider_on");
 	pTex2 = TextureContainer::Load("graph/interface/menus/menu_slider_off");
 	arx_assert(pTex1);
 	arx_assert(pTex2);
 	
-	iPos = 0;
+	m_value = 0;
 
 	rZone.left   = pos.x;
 	rZone.top    = pos.y;
@@ -2761,16 +2687,16 @@ void SliderWidget::EmptyFunction() {
 
 	//Touche pour la selection
 	if(GInput->isKeyPressedNowPressed(Keyboard::Key_LeftArrow)) {
-		iPos--;
+		m_value--;
 
-		if(iPos <= 0)
-			iPos = 0;
+		if(m_value <= 0)
+			m_value = 0;
 	} else {
 		if(GInput->isKeyPressedNowPressed(Keyboard::Key_RightArrow)) {
-			iPos++;
+			m_value++;
 
-			if(iPos >= 10)
-				iPos = 10;
+			if(m_value >= 10)
+				m_value = 10;
 		}
 	}
 }
@@ -2783,43 +2709,43 @@ bool SliderWidget::OnMouseClick() {
 	
 	if(rZone.contains(cursor)) {
 		if(pLeftButton->rZone.contains(cursor)) {
-			iPos--;
-			if(iPos <= 0)
-				iPos = 0;
+			m_value--;
+			if(m_value <= 0)
+				m_value = 0;
 		}
 		
 		if(pRightButton->rZone.contains(cursor)) {
-			iPos++;
-			if(iPos >= 10)
-				iPos = 10;
+			m_value++;
+			if(m_value >= 10)
+				m_value = 10;
 		}
 	}
 	
 	switch (iID) {
 	// MENUOPTIONS_VIDEO
 	case BUTTON_MENUOPTIONSVIDEO_FOG:
-		ARXMenu_Options_Video_SetFogDistance(iPos);
+		ARXMenu_Options_Video_SetFogDistance(m_value);
 		break;
 	// MENUOPTIONS_AUDIO
 	case BUTTON_MENUOPTIONSAUDIO_MASTER:
-		ARXMenu_Options_Audio_SetMasterVolume(iPos);
+		ARXMenu_Options_Audio_SetMasterVolume(m_value);
 		break;
 	case BUTTON_MENUOPTIONSAUDIO_SFX:
-		ARXMenu_Options_Audio_SetSfxVolume(iPos);
+		ARXMenu_Options_Audio_SetSfxVolume(m_value);
 		break;
 	case BUTTON_MENUOPTIONSAUDIO_SPEECH:
-		ARXMenu_Options_Audio_SetSpeechVolume(iPos);
+		ARXMenu_Options_Audio_SetSpeechVolume(m_value);
 		break;
 	case BUTTON_MENUOPTIONSAUDIO_AMBIANCE:
-		ARXMenu_Options_Audio_SetAmbianceVolume(iPos);
+		ARXMenu_Options_Audio_SetAmbianceVolume(m_value);
 		break;
 	// MENUOPTIONS_CONTROLS
 	case BUTTON_MENUOPTIONS_CONTROLS_MOUSESENSITIVITY:
-		ARXMenu_Options_Control_SetMouseSensitivity(iPos);
+		ARXMenu_Options_Control_SetMouseSensitivity(m_value);
 		break;
 		case BUTTON_MENUOPTIONS_CONTROLS_QUICKSAVESLOTS: {
-			iPos = std::max(iPos, 1);
-			config.misc.quicksaveSlots = iPos;
+			m_value = std::max(m_value, 1);
+			config.misc.quicksaveSlots = m_value;
 			break;
 		}
 	}
@@ -2856,7 +2782,7 @@ void SliderWidget::Render() {
 	GRenderer->SetBlendFunc(Renderer::BlendOne, Renderer::BlendOne);
 	
 	for(int i = 0; i < 10; i++) {
-		TextureContainer * pTex = (i < iPos) ? pTex1 : pTex2;
+		TextureContainer * pTex = (i < m_value) ? pTex1 : pTex2;
 		Rectf rect = Rectf(pos, RATIO_X(pTex->m_dwWidth), RATIO_Y(pTex->m_dwHeight));
 		
 		EERIEDrawBitmap2(rect, 0, pTex, Color::white);
@@ -2892,7 +2818,9 @@ void SliderWidget::RenderMouseOver() {
 	GRenderer->SetRenderState(Renderer::AlphaBlending, false);
 }
 
-MenuCursor::MenuCursor() {
+MenuCursor::MenuCursor()
+	: m_size(Vec2s(64, 64))
+{
 	
 	SetCursorOff();
 	
@@ -2904,7 +2832,7 @@ MenuCursor::MenuCursor() {
 	
 	bMouseOver=false;
 	
-	iNumCursor=0;
+	m_currentFrame=0;
 	lFrameDiff=0;
 }
 
@@ -2935,10 +2863,8 @@ void MenuCursor::DrawOneCursor(const Vec2s& mousePos) {
 	GRenderer->GetTextureStage(0)->setMagFilter(TextureStage::FilterNearest);
 	GRenderer->GetTextureStage(0)->setWrapMode(TextureStage::WrapClamp);
 
-	EERIEDrawBitmap2(Rectf(Vec2f(mousePos),
-	                 scursor[iNumCursor]->m_dwWidth,
-	                 scursor[iNumCursor]->m_dwHeight),
-	                 0.00000001f, scursor[iNumCursor], Color::white);
+	EERIEDrawBitmap2(Rectf(Vec2f(mousePos), m_size.x, m_size.y),
+	                 0.00000001f, scursor[m_currentFrame], Color::white);
 
 	GRenderer->GetTextureStage(0)->setMinFilter(TextureStage::FilterLinear);
 	GRenderer->GetTextureStage(0)->setMagFilter(TextureStage::FilterLinear);
@@ -2958,12 +2884,7 @@ void MenuCursor::update(float time) {
 	}
 	exited = !inWindow;
 	
-	Vec2s iDiff;
-	if(scursor[eNumTex]) {
-		iDiff = Vec2s(scursor[eNumTex]->m_dwWidth / 2, scursor[eNumTex]->m_dwHeight / 2);
-	} else {
-		iDiff = Vec2s_ZERO;
-	}
+	Vec2s iDiff = m_size / Vec2s(2);
 	
 	iOldCoord[iNbOldCoord] = GInput->getMousePosAbs() + iDiff;
 	
@@ -3065,16 +2986,8 @@ void MenuCursor::DrawLine2D(float _fSize, Color3f color) {
 
 void MenuCursor::DrawCursor() {
 	
-	GRenderer->SetRenderState(Renderer::AlphaBlending, true);
 	DrawLine2D(10.f, Color3f(.725f, .619f, 0.56f));
-
-	if(scursor[iNumCursor])
-		GRenderer->SetTexture(0, scursor[iNumCursor]);
-	else 
-		GRenderer->ResetTexture(0);
-
-	GRenderer->SetRenderState(Renderer::AlphaBlending, false);
-
+	
 	GRenderer->SetRenderState(Renderer::DepthTest, false);
 	DrawOneCursor(GInput->getMousePosAbs());
 	GRenderer->SetRenderState(Renderer::DepthTest, true);
@@ -3083,22 +2996,22 @@ void MenuCursor::DrawCursor() {
 
 	if(lFrameDiff > 70) {
 		if(bMouseOver) {
-			if(iNumCursor < 4) {
-				iNumCursor++;
+			if(m_currentFrame < 4) {
+				m_currentFrame++;
 			} else {
-				if(iNumCursor > 4) {
-					iNumCursor--;
+				if(m_currentFrame > 4) {
+					m_currentFrame--;
 				}
 			}
 
 			SetCursorOff();
 			bMouseOver=false;
 		} else {
-			if(iNumCursor > 0) {
-				iNumCursor++;
+			if(m_currentFrame > 0) {
+				m_currentFrame++;
 
-				if(iNumCursor > 7)
-					iNumCursor=0;
+				if(m_currentFrame > 7)
+					m_currentFrame=0;
 			}
 		}
 

@@ -32,14 +32,7 @@ extern EERIE_CAMERA subj;
 
 static const Vec2s symbolVecScale(8*2, 6*2);
 
-struct SYMBOL_DRAW {
-	unsigned long	starttime;
-	Vec3f		lastpos;
-	short			lasttim;
-	short			duration;
-	char			sequence[32];
-	Vec2s cPosStart;
-};
+
 
 Vec2s GetSymbVector(char c) {
 
@@ -56,15 +49,13 @@ Vec2s GetSymbVector(char c) {
 	}
 }
 
-void ReCenterSequence(const char *_pcSequence, Vec2s & iMin, Vec2s & iMax) {
+void ReCenterSequence(const std::string & _pcSequence, Vec2s & iMin, Vec2s & iMax) {
 	
 	Vec2s iSize = Vec2s(0, 0);
 	iMin = Vec2s(0, 0);
 	iMax = Vec2s(0, 0);
 	
-	int iLenght=strlen(_pcSequence);
-
-	for(int iI = 0; iI < iLenght; iI++) {
+	for(size_t iI = 0; iI < _pcSequence.length(); iI++) {
 		Vec2s es2dVector = GetSymbVector(_pcSequence[iI]);
 		es2dVector *= symbolVecScale;
 		iSize += es2dVector;
@@ -181,15 +172,15 @@ void ARX_SPELLS_UpdateSymbolDraw() {
 					io->dynlight = LightHandle::Invalid;
 				}
 
-				free(io->symboldraw);
+				delete io->symboldraw;
 				io->symboldraw = NULL;
 				continue;
 			}
 
-			long nbcomponents=strlen(sd->sequence);
+			long nbcomponents = sd->sequence.length();
 
 			if(nbcomponents <= 0) {
-				free(io->symboldraw);
+				delete io->symboldraw;
 				io->symboldraw = NULL;
 				continue;
 			}
@@ -294,7 +285,7 @@ void ARX_SPELLS_UpdateSymbolDraw() {
 void ARX_SPELLS_ClearAllSymbolDraw() {
 	BOOST_FOREACH(Entity * e, entities) {
 		if(e && e->symboldraw) {
-			free(e->symboldraw);
+			delete e->symboldraw;
 			e->symboldraw = NULL;
 		}
 	}
@@ -306,18 +297,15 @@ void ARX_SPELLS_ClearAllSymbolDraw() {
 
 
 void ARX_SPELLS_RequestSymbolDrawCommon(Entity *io, float duration, RuneInfo & info) {
-	SYMBOL_DRAW * ptr;
-	ptr = (SYMBOL_DRAW *)realloc(io->symboldraw, sizeof(SYMBOL_DRAW));
-
-	if(!ptr)
-		return;
-
-	io->symboldraw = ptr;
-
+	
+	if(!io->symboldraw)
+		io->symboldraw = new SYMBOL_DRAW;
+	
+	
 	SYMBOL_DRAW *sd = io->symboldraw;
 
 	sd->duration = (short)std::max(1l, long(duration));
-	strcpy(sd->sequence, info.sequence.c_str());
+	sd->sequence = info.sequence;
 
 	sd->starttime = (unsigned long)(arxtime);
 	sd->lasttim = 0;

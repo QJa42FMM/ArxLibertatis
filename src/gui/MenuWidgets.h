@@ -52,6 +52,7 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 #include "input/InputKey.h"
 #include "math/Vector.h"
 #include "math/Rectangle.h"
+#include "util/HandleType.h"
 
 class TextureContainer;
 class Font;
@@ -61,9 +62,6 @@ enum MenuButton {
 	
 	BUTTON_MENUMAIN_RESUMEGAME = 1,
 	BUTTON_MENUMAIN_NEWQUEST,
-	BUTTON_MENUMAIN_LOADQUEST,
-	BUTTON_MENUMAIN_SAVEQUEST,
-	BUTTON_MENUMAIN_MULTIPLAYER,
 	BUTTON_MENUMAIN_OPTIONS,
 	BUTTON_MENUMAIN_CREDITS,
 	BUTTON_MENUMAIN_QUIT,
@@ -227,6 +225,8 @@ enum ELEMPOS
 	CENTERY
 };
 
+ARX_HANDLE_TYPEDEF(long, SavegameHandle, -1);
+
 class Widget {
 	
 public:
@@ -235,7 +235,9 @@ public:
 	Widget *	pRef;
 	Rect	rZone;
 	int			iID;
-	long		lData;
+	
+	SavegameHandle m_savegame;
+	
 	ELEMPOS     ePlace;			//placement de la zone
 	ELEMSTATE   eState;			//etat de l'element en cours
 	MENUSTATE   eMenuState;		//etat de retour de l'element
@@ -307,11 +309,11 @@ public:
 // faire une classe
 // like a container in java
 
-class CMenuPanel : public Widget {
+class HorizontalPanelWidget : public Widget {
 	
 public:
-	CMenuPanel();
-	virtual ~CMenuPanel();
+	HorizontalPanelWidget();
+	virtual ~HorizontalPanelWidget();
 	
 	void Move(const Vec2i & offset);
 	void AddElement(Widget * element);
@@ -341,7 +343,7 @@ public:
 	
 public:
 	
-	TextWidget(int id, Font * font, const std::string & text, Vec2i pos, MENUSTATE state);
+	TextWidget(int id, Font * font, const std::string & text, Vec2i pos = Vec2i_ZERO, MENUSTATE state = NOP);
 	virtual ~TextWidget();
 	
 	void setColor(Color color) { lColor = color; }
@@ -361,10 +363,7 @@ public:
 class ButtonWidget: public Widget {
 	
 public:
-	TextureContainer*   pTex;
-	
-public:
-	ButtonWidget(Vec2i pos, TextureContainer * tex = NULL);
+	ButtonWidget(Vec2i pos, const char * texturePath);
 	~ButtonWidget();
 	
 public:
@@ -375,12 +374,15 @@ public:
 	void Update(int time);
 	void Render();
 	void RenderMouseOver();
+	
+private:
+	TextureContainer * m_texture;
 };
 
 class CycleTextWidget: public Widget {
 	
 public:
-	CycleTextWidget(int, Vec2i pos);
+	explicit CycleTextWidget(int _iID);
 	virtual ~CycleTextWidget();
 	
 	void setValue(int value) { iPos = value; }
@@ -416,8 +418,8 @@ public:
 	SliderWidget(int id, Vec2i pos);
 	virtual ~SliderWidget();
 	
-	void setValue(int value) { iPos = value; }
-	int getValue() const { return iPos; }
+	void setValue(int value) { m_value = value; }
+	int getValue() const { return m_value; }
 	
 	void Move(const Vec2i & offset);
 	bool OnMouseClick();
@@ -432,7 +434,7 @@ private:
 	ButtonWidget		*	pRightButton;
 	TextureContainer	* pTex1;
 	TextureContainer	* pTex2;
-	int					iPos;
+	int					m_value;
 };
 
 class CheckboxWidget : public Widget {
@@ -444,6 +446,8 @@ public:
 	void Move(const Vec2i & offset);
 	bool OnMouseClick();
 	void Update(int time);
+	
+	void renderCommon();
 	void Render();
 	void RenderMouseOver();
 	
@@ -451,9 +455,8 @@ public:
 	int					iOldState;
 	
 private:
-	Vec2i m_pos;
-	int					iTaille;
-	std::vector<TextureContainer *> vTex;
+	TextureContainer * m_textureOff;
+	TextureContainer * m_textureOn;
 	TextWidget	* pText;
 };
 
@@ -481,28 +484,6 @@ public:
 class CWindowMenuConsole {
 	
 public:
-	bool					bFrameOdd;
-	
-	Vec2i m_pos;
-	Vec2i m_oldPos;
-	Vec2i m_offset;
-	Vec2i m_size;
-	int						iInterligne;
-	MENUSTATE				eMenuState;
-	CMenuAllZone			MenuAllZone;
-	Widget		*	pZoneClick;
-	bool					bEdit;
-	TextureContainer	*	pTexBackground;
-	TextureContainer	*	pTexBackgroundBorder;
-	long					lData;
-	bool				bMouseAttack;
-	
-	static const int m_textCursorFlashDuration = 300;
-	float m_textCursorCurrentTime;
-	
-private:
-	void UpdateText();
-public:
 	CWindowMenuConsole(Vec2i pos, Vec2i size, MENUSTATE state);
 	
 	void AddMenu(Widget * element);
@@ -513,6 +494,31 @@ public:
 	
 	Widget * GetTouch(bool keyTouched, int keyId, InputKeyId* pInputKeyId = NULL, bool _bValidateTest = false);
 	void ReInitActionKey();
+	
+	Vec2i m_pos;
+	Vec2i m_oldPos;
+	int m_rowSpacing;
+	SavegameHandle m_savegame;
+	MENUSTATE eMenuState;
+	CMenuAllZone MenuAllZone;
+	
+private:
+	void UpdateText();
+	
+	bool					bFrameOdd;
+	
+	Vec2i m_offset;
+	Vec2i m_size;
+	
+	Widget		*	pZoneClick;
+	bool					bEdit;
+	TextureContainer	*	pTexBackground;
+	TextureContainer	*	pTexBackgroundBorder;
+	
+	bool				bMouseAttack;
+	
+	static const int m_textCursorFlashDuration = 300;
+	float m_textCursorCurrentTime;
 };
 
 class CWindowMenu {
@@ -563,6 +569,7 @@ private:
 	
 	void DrawOneCursor(const Vec2s & mousePos);
 	
+	Vec2s m_size;
 	bool exited; //! Has the mouse exited the window
 	
 	float m_storedTime;
@@ -570,7 +577,7 @@ private:
 	// Cursor
 	long				lFrameDiff;
 	CURSORSTATE			eNumTex;
-	int					iNumCursor;
+	int					m_currentFrame;
 	bool				bMouseOver;
 	
 	// For the ribbon effect

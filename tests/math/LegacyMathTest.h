@@ -23,14 +23,13 @@
 #include <cppunit/TestCase.h>
 #include <cppunit/extensions/HelperMacros.h>
 
-#include "graphics/GraphicsUtility.h"
-
 class LegacyMathTest : public CppUnit::TestFixture {
 	
-	CPPUNIT_TEST_SUITE(LegacyMathTest);	
+	CPPUNIT_TEST_SUITE(LegacyMathTest);
+	CPPUNIT_TEST(rotationTestDataTest);
 	CPPUNIT_TEST(quaternionTests);
 	CPPUNIT_TEST(quatMuliplyTest);
-	//CPPUNIT_TEST(quatSlerpTest); ignore
+	CPPUNIT_TEST(quatSlerpTest);
 	CPPUNIT_TEST(quatTransformVectorTest);
 	CPPUNIT_TEST(quatMatrixConversionTest);
 	CPPUNIT_TEST(vecMatrixConversionTest);
@@ -47,6 +46,7 @@ public:
 	void setUp();
 	void tearDown();
 	
+	void rotationTestDataTest();
 	void quaternionTests();
 	void quatMuliplyTest();
 	void quatSlerpTest();

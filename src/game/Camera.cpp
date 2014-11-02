@@ -21,7 +21,6 @@
 
 #include "graphics/Math.h"
 #include "graphics/Renderer.h"
-#include "graphics/GraphicsUtility.h"
 
 #include <glm/gtx/euler_angles.hpp>
 #include <glm/gtx/transform.hpp>
@@ -45,23 +44,105 @@ void EERIE_TRANSFORM::updateFromAngle(const Anglef &angle) {
 MASTER_CAMERA_STRUCT MasterCamera;
 
 
+void rotPoint(Vec3f *in, Vec3f *out, EERIE_TRANSFORM &transform) {
 
-float EERIE_TransformOldFocalToNewFocal(float _fOldFocal)
-{
-	if(_fOldFocal < 200)
-		return (-.34f * _fOldFocal + 168.5f);
-	else if(_fOldFocal < 300)
-		return (-.25f * _fOldFocal + 150.5f);
-	else if(_fOldFocal < 400)
-		return (-.155f * _fOldFocal + 124.f);
-	else if(_fOldFocal < 500)
-		return (-.11f * _fOldFocal + 106.f);
-	else if(_fOldFocal < 600)
-		return (-.075f * _fOldFocal + 88.5f);
-	else if(_fOldFocal < 700)
-		return (-.055f * _fOldFocal + 76.5f);
-	else if(_fOldFocal < 800)
-		return (-.045f * _fOldFocal + 69.5f);
+	Vec3f tmp;
+
+	ZRotatePoint(in, out, transform.zcos, transform.zsin);
+	XRotatePoint(out, &tmp, transform.xcos, transform.xsin);
+	YRotatePoint(&tmp, out, transform.ycos, -transform.ysin);
+}
+
+glm::mat4 Util_LookAt(Vec3f vFrom, Vec3f vView, Vec3f vWorldUp) {
+	
+	glm::mat4x4 mat;
+	
+	// Normalize the z basis vector
+	float fLength = glm::length(vView);
+	if (fLength < 1e-6f)
+		return glm::mat4(1);
+
+	// Get the dot product, and calculate the projection of the z basis
+	// vector onto the up vector. The projection is the y basis vector.
+	float fDotProduct = glm::dot(vWorldUp, vView);
+
+	Vec3f vUp = vWorldUp - vView * fDotProduct;
+
+	// If this vector has near-zero length because the input specified a
+	// bogus up vector, let's try a default up vector
+	if(1e-6f > (fLength = glm::length(vUp)))
+	{
+		vUp = Vec3f_Y_AXIS - vView * vView.y;
+
+		// If we still have near-zero length, resort to a different axis.
+		if(1e-6f > (fLength = glm::length(vUp)))
+		{
+			vUp = Vec3f_Z_AXIS - vView * vView.z;
+
+			if(1e-6f > (fLength = glm::length(vUp)))
+				return glm::mat4(1);
+		}
+	}
+
+	// Normalize the y basis vector
+	vUp /= fLength;
+
+	// The x basis vector is found simply with the cross product of the y
+	// and z basis vectors
+	Vec3f vRight = glm::cross(vUp, vView);
+
+	// Start building the matrix. The first three rows contains the basis
+	// vectors used to rotate the view to point at the lookat point
+	mat[0][0] = vRight.x;
+	mat[0][1] = vUp.x;
+	mat[0][2] = vView.x;
+	mat[1][0] = vRight.y;
+	mat[1][1] = vUp.y;
+	mat[1][2] = vView.y;
+	mat[2][0] = vRight.z;
+	mat[2][1] = vUp.z;
+	mat[2][2] = vView.z;
+
+	// Do the translation values (rotations are still about the eyepoint)
+	mat[3][0] = -glm::dot(vFrom, vRight);
+	mat[3][1] = -glm::dot(vFrom, vUp);
+	mat[3][2] = -glm::dot(vFrom, vView);
+	mat[3][3] = 1.0f;
+	
+	return mat;
+}
+
+glm::mat4 Util_SetViewMatrix(EERIE_TRANSFORM &transform) {
+
+	Vec3f vFrom(transform.pos.x, -transform.pos.y, transform.pos.z);
+	Vec3f vTout(0.0f, 0.0f, 1.0f);
+
+	Vec3f vView;
+	rotPoint(&vTout, &vView, transform);
+	
+	Vec3f up(0.f, 1.f, 0.f);
+	Vec3f vWorldUp;
+	rotPoint(&up, &vWorldUp, transform);
+
+	return Util_LookAt(vFrom, vView, vWorldUp);
+}
+
+
+float focalToFov(float focal) {
+	if(focal < 200)
+		return (-.34f * focal + 168.5f);
+	else if(focal < 300)
+		return (-.25f * focal + 150.5f);
+	else if(focal < 400)
+		return (-.155f * focal + 124.f);
+	else if(focal < 500)
+		return (-.11f * focal + 106.f);
+	else if(focal < 600)
+		return (-.075f * focal + 88.5f);
+	else if(focal < 700)
+		return (-.055f * focal + 76.5f);
+	else if(focal < 800)
+		return (-.045f * focal + 69.5f);
 	else
 		return 33.5f;
 }
@@ -69,7 +150,7 @@ float EERIE_TransformOldFocalToNewFocal(float _fOldFocal)
 
 void EERIE_CreateMatriceProj(float _fWidth, float _fHeight, EERIE_CAMERA * cam) {
 
-	float _fFOV = EERIE_TransformOldFocalToNewFocal(cam->focal);
+	float _fFOV = focalToFov(cam->focal);
 	float _fZNear = 1.f;
 	float _fZFar = cam->cdepth;
 
@@ -89,9 +170,8 @@ void EERIE_CreateMatriceProj(float _fWidth, float _fHeight, EERIE_CAMERA * cam) 
 	cam->ProjectionMatrix[3][2] = (-Q * fNearPlane);
 	cam->ProjectionMatrix[2][3] = 1.f;
 	GRenderer->SetProjectionMatrix(cam->ProjectionMatrix);
-
-	glm::mat4x4 tempViewMatrix;
-	Util_SetViewMatrix(tempViewMatrix, cam->orgTrans);
+	
+	glm::mat4 tempViewMatrix = Util_SetViewMatrix(cam->orgTrans);
 	GRenderer->SetViewMatrix(tempViewMatrix);
 
 	cam->ProjectionMatrix[0][0] *= _fWidth * .5f;

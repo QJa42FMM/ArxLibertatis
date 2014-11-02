@@ -63,8 +63,6 @@ ZeniMax Media Inc., Suite 120, Rockville, Maryland 20850 USA.
 #include "scene/Object.h"
 #include "scene/Interactive.h"
 
-extern ParticleManager * pParticleManager;
-
 CCreateField::CCreateField()
 	: eSrc(Vec3f_ZERO)
 	, youp(true)
@@ -215,12 +213,7 @@ void CCreateField::Render()
 	}
 
 	falpha = glm::sin(glm::radians(fglow)) + rnd() * 0.2f;
-
-	if(falpha > 1.0f)
-		falpha = 1.0f;
-
-	if(falpha < 0.0f)
-		falpha = 0.0f;
+	falpha = glm::clamp(falpha, 0.f, 1.f);
 
 	float x = eSrc.x;
 	float y = eSrc.y;
@@ -719,19 +712,19 @@ void CRiseDead::RenderFissure()
 
 	if(bIntro) {
 		for(i = 0; i < std::min(end, (int)fSizeIntro); i++) {
-			EE_RT(v1a[i], vr[0].p);
-			EE_RT(v1b[i], vr[1].p);
-			EE_RT(v1a[i+1], vr[2].p);
-			EE_RT(v1b[i+1], vr[3].p);
+			vr[0].p = EE_RT(v1a[i]);
+			vr[1].p = EE_RT(v1b[i]);
+			vr[2].p = EE_RT(v1a[i+1]);
+			vr[3].p = EE_RT(v1b[i+1]);
 			drawTriangle(mat, &vr[0]);
 			drawTriangle(mat, &vr[1]);
 		}
 	} else {
 		for(i = 0; i < std::min(end, (int)fSizeIntro); i++) {
-			EE_RT(va[i], vr[0].p);
-			EE_RT(vb[i], vr[1].p);
-			EE_RT(va[i+1], vr[2].p);
-			EE_RT(vb[i+1], vr[3].p);
+			vr[0].p = EE_RT(va[i]);
+			vr[1].p = EE_RT(vb[i]);
+			vr[2].p = EE_RT(va[i+1]);
+			vr[3].p = EE_RT(vb[i+1]);
 			drawTriangle(mat, &vr[0]);
 			drawTriangle(mat, &vr[1]);
 		}
@@ -747,20 +740,20 @@ void CRiseDead::RenderFissure()
 		vt[2] = va[i] - (va[i] - eSrc) * 0.2f;
 		vt[3] = va[i + 1] - (va[i + 1] - eSrc) * 0.2f;
 		
-		EE_RT(vt[3], vr[0].p);
-		EE_RT(vt[2], vr[1].p);
-		EE_RT(va[i+1], vr[2].p);
-		EE_RT(va[i], vr[3].p);
+		vr[0].p = EE_RT(vt[3]);
+		vr[1].p = EE_RT(vt[2]);
+		vr[2].p = EE_RT(va[i+1]);
+		vr[3].p = EE_RT(va[i]);
 		drawTriangle(mat, &vr[0]);
 		drawTriangle(mat, &vr[1]);
 		
 		vt[2] = vb[i] - (vb[i] - eSrc) * 0.2f;
 		vt[3] = vb[i + 1] - (vb[i + 1] - eSrc) * 0.2f;
 		
-		EE_RT(vb[i], vr[3].p);
-		EE_RT(vb[i+1], vr[2].p);
-		EE_RT(vt[2], vr[1].p);
-		EE_RT(vt[3], vr[0].p);
+		vr[3].p = EE_RT(vb[i]);
+		vr[2].p = EE_RT(vb[i+1]);
+		vr[1].p = EE_RT(vt[2]);
+		vr[0].p = EE_RT(vt[3]);
 		drawTriangle(mat, &vr[0]);
 		drawTriangle(mat, &vr[1]);
 	}
@@ -866,10 +859,10 @@ void CRiseDead::RenderFissure()
 			vr[2].color = (Color3f(fColorRays2[0], fColorRays2[1], fColorRays2[2]) * tfRaysa[i]).toRGB();
 			vr[3].color = (Color3f(fColorRays2[0], fColorRays2[1], fColorRays2[2]) * tfRaysa[i + 1]).toRGB();
 			
-			EE_RT(vt[0], vr[0].p);
-			EE_RT(vt[1], vr[1].p);
-			EE_RT(vt[2], vr[2].p);
-			EE_RT(vt[3], vr[3].p);
+			vr[0].p = EE_RT(vt[0]);
+			vr[1].p = EE_RT(vt[1]);
+			vr[2].p = EE_RT(vt[2]);
+			vr[3].p = EE_RT(vt[3]);
 			drawTriangle(mat, &vr[0]);
 			drawTriangle(mat, &vr[1]);
 		}
@@ -889,10 +882,10 @@ void CRiseDead::RenderFissure()
 			vr[2].color = (Color3f(fColorRays2[0], fColorRays2[1], fColorRays2[2]) * tfRaysb[i]).toRGB();
 			vr[3].color = (Color3f(fColorRays2[0], fColorRays2[1], fColorRays2[2]) * tfRaysb[i + 1]).toRGB();
 
-			EE_RT(vt[0], vr[0].p);
-			EE_RT(vt[1], vr[1].p);
-			EE_RT(vt[2], vr[2].p);
-			EE_RT(vt[3], vr[3].p);
+			vr[0].p = EE_RT(vt[0]);
+			vr[1].p = EE_RT(vt[1]);
+			vr[2].p = EE_RT(vt[2]);
+			vr[3].p = EE_RT(vt[3]);
 			drawTriangle(mat, &vr[0]);
 			drawTriangle(mat, &vr[1]);
 		}
