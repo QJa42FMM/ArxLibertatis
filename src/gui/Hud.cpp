@@ -1557,7 +1557,9 @@ public:
 	
 	void update() {
 		
-		m_amount = (float)player.lifePool.current/(float)player.Full_maxlife;
+		arx_assert(player.Full_maxlife != 0.f);
+		float ratio = player.lifePool.current / player.Full_maxlife;
+		m_amount = glm::clamp(ratio, 0.f, 1.f);
 		
 		if(player.poison > 0.f) {
 			float val = std::min(player.poison, 0.2f) * 255.f * 5.f;
@@ -1611,7 +1613,9 @@ public:
 		
 		m_rect = createChild(parent, Anchor_BottomRight, m_size * m_scale, Anchor_BottomRight);
 		
-		m_amount = player.manaPool.current / player.Full_maxmana;
+		arx_assert(player.Full_maxmana != 0.f);
+		float ratio = player.manaPool.current / player.Full_maxmana;
+		m_amount = glm::clamp(ratio, 0.f, 1.f);
 	}
 	
 	void draw() {
